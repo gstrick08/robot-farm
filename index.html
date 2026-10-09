@@ -7,9 +7,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Robot Farm">
-<meta name="theme-color" content="#8fd3ff">
+<meta name="theme-color" content="#c4e9e5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
 <title>Robot Farm</title>
 <style>
 @font-face { font-family: Andika; src: url(fonts/Andika-Regular.woff2) format('woff2'); font-display: swap; }
@@ -77,8 +78,8 @@ body.placing .tile.grass:empty { outline: 3px dashed rgba(255,255,255,.8); outli
 .pod.glow { animation: glow 1.6s ease-in-out infinite; }
 .pod.shopbtn { background: radial-gradient(circle at 35% 30%, #fff, #ffe2b8 60%, #f4b46c); }
 @keyframes glow { 50% { box-shadow: 0 6px 0 rgba(0,0,0,.2), 0 0 0 10px rgba(255,255,255,.7); } }
-.placing { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 46px; background: rgba(255,255,255,.9); padding: 4px 24px; border-radius: 30px; animation: glow 1.6s infinite; }
-.placing[hidden] { display: none; }
+#placing { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 46px; background: rgba(255,255,255,.9); padding: 4px 24px; border-radius: 30px; animation: glow 1.6s infinite; }
+#placing[hidden] { display: none; }
 
 /* mission */
 #mission, #coop { flex-direction: column; align-items: center; }
@@ -185,6 +186,9 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 @media (orientation: portrait) and (max-width: 1100px) and (pointer: coarse) { .rotate { display: grid; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
+<link rel="stylesheet" href="ui.css">
+<link rel="preload" href="fonts/Fredoka-Latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/Andika-Regular.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 <body data-screen="start">
 
@@ -241,10 +245,15 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 
 <script type="module">
 import * as L from './logic.js';
+import { art, robotArt } from './art.js';
+import { rankVoices, voiceQuality, audioPreferences } from './presentation.js';
+import { sounds } from './sounds.js';
 
 const $ = s => document.querySelector(s);
 const el = (tag, cls = '', text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
-const button = (cls, text, fn) => { const b = el('button', cls, text); b.onclick = fn; return b; };
+const ICON = { '🪙': 'coin', '🌱': 'seed', '✨': 'goldseed', '🔎': 'search', '⛏️': 'pick', '🫧': 'pod', '🔠': 'twins', '☁️': 'glitch', '🚀': 'rocket', '🛒': 'shop', '🏡': 'home', '🔊': 'sound', '⚙️': 'gear', '🏅': 'medal', '🥕': 'carrot', '🌽': 'corn', '🍓': 'strawberry', '🎃': 'pumpkin', '🌳': 'tree', '🛸': 'ship', '🤖': 'bot', '⭐': 'star', '🌟': 'star', '🔙': 'back', '▶': 'play', '🧢': 'cap', '🎩': 'tophat', '👑': 'crown' };
+const button = (cls, text, fn) => { const b = el('button', cls); if (ICON[text]) { b.append(art(ICON[text])); b.setAttribute('aria-label', ICON[text]); } else b.textContent = text; b.onclick = fn; return b; };
+const putArt = (node, name) => node.replaceChildren(art(name));
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const qs = new URLSearchParams(location.search);
@@ -289,10 +298,13 @@ const logToday = k => { (S.log[TODAY()] ||= { m: 0, g: 0, c: 0 })[k]++; };
 // Mastery can happen on a solo tap or a read-aloud; collect it for a "bot rescued!" party.
 function track(k, fn) { const it = item(k), was = L.isMastered(it); fn(it); if (!was && L.isMastered(it)) S.newBots.push(k); }
 
-// ---------- sound effects (synthesized, gentle; no buzzers) ----------
-let ac;
+// ---------- original local clips, with gentle synthesis as a fallback ----------
+let ac, sound;
+const AUDIO_KEY = 'robotfarm.audio.v1';
+let audioPrefs = audioPreferences(null);
+try { audioPrefs = audioPreferences(JSON.parse(localStorage.getItem(AUDIO_KEY))); } catch {}
 function tone(notes, dur = 0.12, type = 'sine', vol = 0.12) {
-  if (!ac) return;
+  if (!ac || FAST) return;
   let t = ac.currentTime;
   for (const f of notes) {
     const o = ac.createOscillator(), g = ac.createGain();
@@ -302,51 +314,71 @@ function tone(notes, dur = 0.12, type = 'sine', vol = 0.12) {
     t += dur * 0.8;
   }
 }
+function effect(name, fallback) { if (!sound?.play(name)) fallback(); }
 const sfx = {
-  pop: () => tone([880, 1175], 0.06),
-  gold: () => tone([660, 880, 1320], 0.11),
-  silver: () => tone([523, 659], 0.1),
-  soft: () => tone([392, 349], 0.16, 'triangle', 0.05),
-  coin: () => tone([988, 1319], 0.08, 'square', 0.04),
-  win: () => tone([523, 659, 784, 1047, 1319], 0.15),
+  pop: () => effect('tap', () => tone([660, 880], .08, 'triangle', .07)),
+  gold: () => effect('gold', () => tone([523, 659, 1047], .11)),
+  silver: () => effect('silver', () => tone([523, 659], .1, 'sine', .06)),
+  soft: () => effect('hmm', () => tone([330, 392], .16, 'sine', .04)),
+  coin: () => effect('coin', () => tone([988, 1319], .08, 'sine', .06)),
+  harvest: () => effect('harvest', () => tone([392, 784], .1, 'triangle', .07)),
+  bag: () => effect('bag', () => tone([523, 784, 1047], .15)),
+  rocket: () => effect('rocket', () => tone([180, 220, 260, 300], .1, 'triangle', .03)),
+  medal: () => effect('medal', () => tone([523, 784, 1047, 1319], .15)),
+  win: () => effect('complete', () => tone([523, 659, 784, 1047], .15)),
 };
 
 // ---------- voice ----------
 const synth = window.speechSynthesis;
 let voice = null;
 function pickVoice() {
-  const vs = synth?.getVoices() || [], us = vs.filter(v => v.lang === 'en-US');
-  voice = vs.find(v => v.voiceURI === S.settings.voice) || us.find(v => /enhanced|premium/i.test(v.name)) ||
-    us.find(v => /samantha/i.test(v.name)) || us[0] || vs.find(v => /^en/.test(v.lang)) || null;
+  const vs = rankVoices(synth?.getVoices() || []);
+  voice = vs.find(v => v.voiceURI === S.settings.voice) || vs[0] || null;
 }
+
 if (synth) { pickVoice(); synth.onvoiceschanged = pickVoice; }
-let talkId = 0;
-function say(text) {
+let talkId = 0, currentSpeech = Promise.resolve();
+function say(text, previewURI = null) {
   console.debug('🤖', text);
   const id = ++talkId, bot = $('#bot');
-  return new Promise(res => {
-    let done = false;
-    const fin = () => { if (done) return; done = true; if (id === talkId) bot.classList.remove('talk'); res(); };
+  sound?.speech(true);
+  currentSpeech = new Promise(res => {
+    let done = false, watchdog;
+    const fin = () => { if (done) return; done = true; clearTimeout(watchdog); if (id === talkId) { bot.classList.remove('talk'); sound?.speech(false); } res(); };
     if (FAST || !synth) return setTimeout(fin, FAST ? 30 : 400 + text.length * 70);
-    setTimeout(fin, 1500 + text.length * 90 / S.settings.rate); // iOS sometimes never fires onend
+    watchdog = setTimeout(fin, 1500 + text.length * 90 / S.settings.rate); // iOS sometimes never fires onend
     synth.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    if (voice) u.voice = voice;
-    u.lang = 'en-US'; u.rate = S.settings.rate;
+    const available = rankVoices(synth.getVoices());
+    const selected = previewURI !== null ? available.find(v => v.voiceURI === previewURI) || available[0] : voice;
+    if (selected) u.voice = selected;
+    u.lang = selected?.lang || 'en-US'; u.rate = S.settings.rate;
     u.onend = u.onerror = fin;
     bot.classList.add('talk');
     synth.speak(u);
   });
+  return currentSpeech;
+}
+async function speechIdle() {
+  let pending;
+  do { pending = currentSpeech; await pending; } while (pending !== currentSpeech);
 }
 
 // ---------- screens & helpers ----------
+let walkTimer;
 function show(id) {
+  clearTimeout(walkTimer);
+  if (id === 'farm') walkTimer = setTimeout(wanderBots, FAST ? 1200 : 12000);
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
-  document.body.dataset.screen = id;
+  document.body.dataset.screen = id; sound?.scene(id);
 }
 function applyLook() {
   document.body.style.setProperty('--bot', S.settings.color || COLORS[0]);
-  $('#bot .hat').textContent = S.hat || '';
+  const palette = { '#3b82f6': ['#85bed0', '#377286'], '#22c55e': ['#a9d2a1', '#477858'], '#f59e0b': ['#e9cb8b', '#9a763c'], '#a855f7': ['#c8b5df', '#75618d'] };
+  const [light, dark] = palette[S.settings.color] || palette[COLORS[0]];
+  document.body.style.setProperty('--bot-light', light); document.body.style.setProperty('--bot-dark', dark);
+  $('#bot .hat').replaceChildren();
+  if (S.hat && ICON[S.hat]) $('#bot .hat').append(art(ICON[S.hat]));
 }
 const happy = () => { const b = $('#bot'); b.classList.remove('happy'); void b.offsetWidth; b.classList.add('happy'); };
 const modal = $('#modal');
@@ -357,10 +389,12 @@ function openModal(title, sticky = false) {
   modal.append(box);
   return box;
 }
-function closeModal() { modal.hidden = true; modal.replaceChildren(); }
+let rewardTimer;
+function closeModal() { clearTimeout(rewardTimer); modal.hidden = true; modal.replaceChildren(); sound?.scene(document.body.dataset.screen); }
 modal.onclick = e => { if (e.target === modal && !modal.dataset.sticky) closeModal(); };
 function floaty(from, text) {
-  const r = from.getBoundingClientRect(), f = el('div', 'floaty', text);
+  const r = from.getBoundingClientRect(), f = el('div', 'floaty', text.replace('🪙', '').trim());
+  if (text.includes('🪙')) f.append(art('coin'));
   f.style.left = r.left + r.width / 2 + 'px'; f.style.top = r.top + 'px';
   document.body.append(f); setTimeout(() => f.remove(), 1000);
 }
@@ -368,7 +402,9 @@ async function celebrateBots() {
   const ks = S.newBots.splice(0); save();
   if (!ks.length) return;
   const box = openModal('', true);
-  box.append(el('div', 'sum', '🤖'.repeat(Math.min(ks.length, 6))), el('div', 'sum', ks.slice(0, 8).map(L.keyText).join('  ')));
+  const crew = el('div', 'sum');
+  ks.slice(0, 6).forEach(() => crew.append(art('botHappy')));
+  box.append(crew, el('div', 'sum teaching', ks.slice(0, 8).map(L.keyText).join('  ')));
   sfx.win(); happy();
   await say(ks.length === 1 ? `You rescued a bot! It loves ${speak(ks[0])}!` : `You rescued ${ks.length} bots! They moved onto your farm!`);
   await sleep(700); closeModal();
@@ -377,7 +413,7 @@ async function celebrateBots() {
 // ---------- start ----------
 $('#play').onclick = () => {
   ac ||= new (window.AudioContext || window.webkitAudioContext)();
-  ac.resume();
+  ac.resume().catch(() => {}); sound ||= sounds(ac, FAST, audioPrefs);
   if (synth && !FAST) synth.speak(new SpeechSynthesisUtterance(' ')); // iOS: the first speech must come from a tap
   navigator.storage?.persist?.();
   sfx.pop();
@@ -426,40 +462,67 @@ function goFarm() {
   say(`Hi ${S.settings.child || 'friend'}! ` + (ready ? 'Your crops are ready. Tap them to pick them!' : 'Pick a mission!'));
 }
 
-async function medalParty() { // the teacher said he passed a list
+async function medalParty() {
   S.party = false; save();
-  const box = openModal('', true), m = el('div', 'sum', '🏅');
-  m.style.fontSize = '150px'; box.append(m);
-  sfx.win(); happy();
-  await say(`You passed your heart word list! You earned a medal! That's ${S.lists.filter(l => l.passed).length} of 6!`);
-  await sleep(800); closeModal();
+  const box = openModal('', true), medal = el('div', 'reward-hero'); medal.append(art('medal'));
+  const count = S.lists.filter(l => l.passed).length;
+  box.append(medal, el('div', 'reward-count', `${count} / 6`));
+  const leave = () => { closeModal(); synth?.cancel(); };
+  box.append(button('play small', '🏡', leave));
+  sound?.scene('reward'); sfx.medal(); happy(); confetti();
+  rewardTimer = setTimeout(leave, FAST ? 380 : 3800);
+  await say('You earned a medal! Great reading.');
 }
 
+const botAt = new Map();
 function renderFarm() {
-  $('#coins').textContent = S.coins; $('#seeds').textContent = S.seeds; $('#gseeds').textContent = S.goldSeeds;
+  countTo($('#coins'), S.coins); countTo($('#seeds'), S.seeds); countTo($('#gseeds'), S.goldSeeds);
   const medals = S.lists.filter(l => l.passed).length;
   $('#medals').hidden = !medals; $('#medalN').textContent = medals;
-  $('#trophy').hidden = !(curList().ready && !curList().passed); // READY TO TEST: time to send the teacher a note
-  const d = TODAY();
-  const bots = L.shuffle(Object.keys(S.items).filter(k => L.isMastered(S.items[k])));
-  const open = L.shuffle(S.farm.map((_, i) => i).filter(i => S.farm[i].t === 'grass' && !S.farm[i].thing));
-  const botAt = new Map(open.slice(0, Math.min(14, bots.length)).map((i, n) => [i, bots[n]])); // rescued bots wander
-  $('#grid').replaceChildren(...S.farm.map((t, i) => {
-    const b = el('button', 'tile ' + t.t);
+  $('#trophy').hidden = !(curList().ready && !curList().passed);
+  const d = TODAY(), grid = $('#grid');
+  if (!grid.children.length) S.farm.forEach((_, i) => {
+    const b = el('button', 'tile'); b.onclick = () => tapTile(i, b); grid.append(b);
+  });
+  for (const [i, k] of botAt) if (S.farm[i].t !== 'grass' || S.farm[i].thing || !L.isMastered(peek(k))) botAt.delete(i);
+  const bots = Object.keys(S.items).filter(k => L.isMastered(S.items[k])).slice(0, 14);
+  const open = S.farm.map((_, i) => i).filter(i => S.farm[i].t === 'grass' && !S.farm[i].thing && !botAt.has(i));
+  for (const k of bots) if (![...botAt.values()].includes(k) && open.length) botAt.set(open.shift(), k);
+  S.farm.forEach((t, i) => {
+    const b = grid.children[i], st = t.crop ? L.cropStage(t.crop, d) : '', k = botAt.get(i);
+    const signature = [t.t, t.thing, t.crop?.kind, t.crop?.gold, st, k].join('|');
+    if (b.dataset.signature === signature) return;
+    b.dataset.signature = signature; b.className = 'tile ' + t.t; b.replaceChildren(); delete b.dataset.say;
     if (t.crop) {
-      const st = L.cropStage(t.crop, d);
-      b.textContent = st === 'ready' ? CROPS[t.crop.kind] : '🌱';
-      b.classList.add(st);
+      b.append(art(st === 'ready' ? t.crop.kind : st === 'sprout' ? 'sprout' : 'planted')); b.classList.add(st);
       if (t.crop.gold) b.classList.add('golden');
-    } else if (t.thing) b.textContent = THING[t.thing].e;
-    else if (botAt.has(i)) { const k = botAt.get(i); b.append(el('span', 'mini', '🤖'), el('small', '', L.keyText(k))); b.dataset.say = speak(k); }
-    b.onclick = () => tapTile(i, b);
-    return b;
-  }));
+      b.setAttribute('aria-label', t.crop.kind + ' ' + st);
+    } else if (t.thing) { b.append(art(t.thing)); if (THING[t.thing].kind === 'animal') b.classList.add('animal'); b.setAttribute('aria-label', THING[t.thing].name); }
+    else if (k) { b.append(art('bot', 'mini'), el('small', '', L.keyText(k))); b.dataset.say = speak(k); b.setAttribute('aria-label', 'Rescued bot ' + L.keyText(k)); }
+    else b.setAttribute('aria-label', t.t === 'soil' ? 'Plant here' : 'Empty ' + t.t);
+  });
   document.body.classList.toggle('placing', !!S.placing);
   $('#placing').hidden = !S.placing;
-  if (S.placing) $('#placing').textContent = '👆 ' + THING[S.placing].e;
+  if (S.placing) $('#placing').replaceChildren(art('hand'), art(S.placing));
   renderPods();
+}
+function wanderBots() {
+  if (document.body.dataset.screen !== 'farm') return;
+  const occupied = [...botAt.keys()];
+  if (occupied.length) {
+    const from = pick(occupied), k = botAt.get(from);
+    const open = S.farm.map((t, i) => i).filter(i => S.farm[i].t === 'grass' && !S.farm[i].thing && !botAt.has(i));
+    if (open.length) {
+      const to = pick(open); botAt.delete(from); botAt.set(to, k); renderFarm();
+      const node = $('#grid').children[to].querySelector('.mini'), cell = $('#grid').children[to].getBoundingClientRect();
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        node.style.transform = `translate(${((from % 10) - (to % 10)) * cell.width}px, ${(Math.floor(from / 10) - Math.floor(to / 10)) * cell.height}px)`;
+        node.style.transition = 'transform 1.2s ease-in-out';
+        requestAnimationFrame(() => requestAnimationFrame(() => { node.style.transform = ''; }));
+      }
+    }
+  }
+  walkTimer = setTimeout(wanderBots, 12000);
 }
 
 function tapTile(i, b) {
@@ -469,7 +532,7 @@ function tapTile(i, b) {
     const st = L.cropStage(t.crop, d);
     if (st !== 'ready') return say(st === 'sprout' ? 'It is growing! Come back tomorrow.' : 'Just planted! Come back tomorrow.');
     const n = t.crop.gold ? 10 : 2;
-    S.coins += n; delete t.crop; save(); sfx.coin(); floaty(b, `+${n} 🪙`); renderFarm();
+    S.coins += n; delete t.crop; save(); sfx.harvest(); floaty(b, `+${n} 🪙`); renderFarm();
     return say(pick(['Yum!', 'Nice picking!', 'Harvest time!']));
   }
   if (t.t === 'soil') return S.seeds || S.goldSeeds ? chooseCrop(i) : say('You need seeds. Go on a mission to get more!');
@@ -486,7 +549,10 @@ function chooseCrop(i) {
   for (const gold of [false, true]) {
     if (gold ? !S.goldSeeds : !S.seeds) continue;
     const r = el('div', 'row');
-    for (const [kind, e] of Object.entries(CROPS)) r.append(button('choice' + (gold ? ' golden' : ''), e, () => plant(i, kind, gold)));
+    for (const [kind, e] of Object.entries(CROPS)) {
+      const b = button('choice' + (gold ? ' golden' : ''), e, () => plant(i, kind, gold));
+      b.setAttribute('aria-label', (gold ? 'Golden ' : '') + kind); r.append(b);
+    }
     box.append(r);
   }
   say(S.goldSeeds ? 'What do you want to plant? The shiny ones are golden!' : 'What do you want to plant?');
@@ -505,7 +571,8 @@ function openShop() {
   let sel = null;
   for (const it of SHOP) {
     const b = el('button', 'shop-item' + (S.coins < it.price ? ' dim' : ''));
-    b.append(el('span', 'e', it.e), el('span', 'p', `${it.price} 🪙`));
+    const image = el('span', 'e'), price = el('span', 'p', it.price);
+    image.append(art(it.id)); price.append(art('coin')); b.append(image, price); b.setAttribute('aria-label', `${it.name}, ${it.price} coins`);
     b.onclick = () => {
       const roomy = it.kind === 'hat' || S.farm.some(t => t.t === 'grass' && !t.thing);
       if (sel === b && S.coins >= it.price && roomy) return buy(it); // second tap buys
@@ -581,7 +648,7 @@ async function startMission(type, n) {
     queue = L.buildQueue(focus, known, L.CAP + 2);
   }
   M = { type, n, m: L.createMission(queue), ease: false, prompt: '' };
-  show('mission'); renderBag();
+  show('mission'); $('#mission').dataset.type = type; renderBag();
   $('#prompt').className = 'prompt'; $('#prompt').textContent = ''; $('#opts').replaceChildren();
   $('#glitch').hidden = type !== 'boss'; $('#glitch').style.transform = '';
   const g = ++qGen;
@@ -633,6 +700,7 @@ async function nextQ() {
   if (twin) { card.className = 'prompt twin'; card.textContent = L.keyText(twinKey); }
   M.prompt = promptText(target);
   await say(M.prompt);
+  await speechIdle();
   if (g === qGen) unlock(); // buttons stay locked until the prompt is finished
 }
 
@@ -658,22 +726,27 @@ async function tapOpt(b, k, target, g) {
     M.ease = r === 'silver'; // right after a miss, the next one is quietly easier
     return nextQ();
   }
-  b.classList.add('faded'); sfx.soft();
+  b.classList.add('faded'); sfx.soft(); curious();
   if (M.type === 'boss') wobbleGlitch(false);
   if (r === 'miss') { track(target, it => L.recordSolo(it, 'miss', TODAY())); S.streak = 0; save(); }
   else $('#opts').querySelector(`[data-k="${CSS.escape(target)}"]`)?.classList.add('hint'); // 2nd miss: show which one
   await say((quick ? 'Eagle eyes! Look carefully. ' : 'Hmm, look again. ') + M.prompt);
+  await speechIdle();
   if (g === qGen) unlock();
 }
 
 function renderBag() {
   const m = M?.m;
-  if (m) $('#bag').replaceChildren(...Array.from({ length: m.nGold }, (_, i) => el('i', i < m.golds ? 'on' : '')));
+  if (m) {
+    $('#bag').replaceChildren(...Array.from({ length: m.nGold }, (_, i) => { const slot = el('i', i < m.golds ? 'on' : ''); if (i < m.golds) slot.append(art('seed')); return slot; }));
+    $('#bag').classList.toggle('full', m.golds >= m.nGold);
+  }
 }
 function flySeed(from) {
   const slot = $('#bag i:not(.on)');
   if (!slot) return renderBag();
-  const a = from.getBoundingClientRect(), b = slot.getBoundingClientRect(), s = el('div', 'fly', '🌱');
+  const a = from.getBoundingClientRect(), b = slot.getBoundingClientRect(), s = el('div', 'fly');
+  s.append(art('seed'));
   s.style.left = a.left + a.width / 2 + 'px'; s.style.top = a.top + a.height / 2 + 'px';
   document.body.append(s);
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -697,20 +770,28 @@ async function finishMission() {
   logToday('m'); save();
   M = null; ++qGen;
   sfx.win(); happy();
-  const box = openModal('', true);
-  box.append(el('div', 'sum', '🌱'.repeat(m.golds) || '⭐'));
-  if (full) box.append(el('div', 'sum', '✨🌟✨'));
-  if (type === 'boss') box.append(el('div', 'sum', '☁️💨 +5 🪙'));
-  box.append(button('play small', '🏡', () => { closeModal(); celebrateBots().then(goFarm); }));
-  const end = allDoneToday() ? (S.day.coop ? ' All missions done for today!' : ' All missions done! Now get a grown-up for Mission Control.') : '';
-  await say(`Mission complete! ${m.golds ? `You got ${m.golds} seeds` : 'Great work'}${full ? ' and a golden seed!' : '!'}` +
-    (type === 'boss' ? ' Glitch ran away and dropped five coins!' : '') + end);
+  const box = openModal('', true); sound?.scene('reward');
+  const hero = el('div', 'reward-hero'); hero.append(art('botHappy'));
+  const count = el('div', 'reward-count'); if (m.golds) count.append(art('seed'), el('b', '', m.golds)); else count.append(art('star'));
+  if (full) count.append(el('span', '', '+'), art('goldseed'), el('b', '', 1));
+  box.append(hero, count);
+  if (type === 'boss') { const bonus = el('div', 'reward-count', '+5'); bonus.append(art('coin')); box.append(bonus); }
+  const leave = () => { closeModal(); synth?.cancel(); celebrateBots().then(goFarm); };
+  box.append(button('play small', '🏡', leave));
+  if (full) sfx.bag();
+  confetti(); rewardTimer = setTimeout(leave, FAST ? 380 : 3800);
+  await say(m.golds ? `Great reading! ${m.golds} seeds${full ? ', and a golden seed' : ''}.` : 'Great work, reader! Back to the farm.');
 }
 $('#quit').onclick = () => { // leaving early keeps every seed he earned
   if (M) { S.seeds += M.m.golds; save(); }
   M = null; ++qGen; synth?.cancel(); goFarm(); say('Okay! Back to the farm.');
 };
-$('#replay').onclick = () => { if (M?.prompt) say(M.prompt); };
+$('#replay').onclick = async () => {
+  if (!M?.prompt) return;
+  const mission = M, g = qGen; lock();
+  await say(M.prompt); await speechIdle();
+  if (M === mission && g === qGen) unlock();
+};
 
 // ---------- Mission Control: he reads out loud, a grown-up taps ----------
 let C = null;
@@ -724,7 +805,7 @@ function coopPick(keys) {
 async function startCoop(keys = null, after = null) {
   closeModal();
   C = { seq: keys ? L.reshuffle(keys) : [...coopPick(L.LETTER_KEYS), ...coopPick(wordKeys())], i: 0, fuel: 0, helped: new Set(), after, placement: !!keys };
-  show('coop'); $('#ship').className = 'ship'; $('#fuel').style.height = '0%'; $('#card').textContent = '🚀'; $('#answer').textContent = '';
+  show('coop'); $('#ship').className = 'ship'; $('#fuel').style.transform = 'scaleY(0)'; putArt($('#card'), 'rocket'); $('#answer').textContent = '';
   await say(keys ? 'Placement check! Read each one to your grown-up.' : 'Mission Control! Read each one to your grown-up. Every one you read fuels the rocket!');
   coopShow();
 }
@@ -755,7 +836,7 @@ document.querySelectorAll('.pstrip [data-r]').forEach(b => b.onclick = async () 
     await sleep(800);
   } else {
     C.fuel++; sfx.gold();
-    $('#fuel').style.height = Math.min(100, 100 * C.fuel / C.seq.length) + '%';
+    $('#fuel').style.transform = `scaleY(${Math.min(1, C.fuel / C.seq.length)})`;
   }
   save();
   if (!C) return;
@@ -766,7 +847,7 @@ async function coopFinish() {
   C = null;
   if (!after) { S.day.coop++; logToday('c'); S.coins += 3; }
   save();
-  $('#ship').classList.add('launch'); sfx.win(); happy();
+  $('#ship').classList.add('launch'); sfx.rocket(); happy(); rocketSmoke();
   await say(after ? 'All done! Great reading!' : 'Three, two, one, blast off! Great reading! You earned three coins.');
   await celebrateBots();
   after ? after() : goFarm();
@@ -816,7 +897,7 @@ $('#parentBack').onclick = goFarm;
 
 function renderParent(msg = '') {
   const chip = k => `<span class="chip ${status(peek(k))}">${esc(L.keyText(k))}</span>`;
-  const vs = (synth?.getVoices() || []).filter(v => /^en/i.test(v.lang));
+  const vs = rankVoices(synth?.getVoices() || []);
   const list = curList();
   $('#parentBody').innerHTML = `
   ${msg ? `<div class="banner">${esc(msg)}</div>` : ''}
@@ -844,7 +925,12 @@ function renderParent(msg = '') {
   </section>
   <section><h2>Settings</h2>
     <label>Child's name (the robot says it)<input id="setChild" value="${esc(S.settings.child)}" autocomplete="off"></label>
-    <label>Voice<select id="setVoice"><option value="">Automatic</option>${vs.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === S.settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('')}</select></label>
+    <label>Voice<select id="setVoice"><option value="">Automatic</option>${vs.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === S.settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)}) — ${esc(voiceQuality(v))}</option>`).join('')}</select></label>
+    <p class="hint">Only voices reported by this browser appear here. On iPad, download an English Premium or Enhanced voice in Settings → Accessibility → Spoken Content (or the speech section) → Voices, then return and preview it. Siri voices may not be exposed to web pages.</p>
+    <details><summary>Preview English voices (${vs.length})</summary><div class="voice-list">${vs.map(v => `<div class="voice-row"><span>${esc(v.name)} (${esc(v.lang)})<small>${esc(voiceQuality(v))}</small></span><button data-act="previewVoice" data-voice="${esc(v.voiceURI)}" aria-label="Preview ${esc(v.name)}">▶ Preview</button></div>`).join('')}</div></details>
+    <label><input id="setMusic" type="checkbox" ${audioPrefs.music ? 'checked' : ''}> Gentle farm music</label>
+    <label>Music volume<input id="setMusicVol" type="range" min="0" max="0.5" step="0.01" value="${audioPrefs.volume}"></label>
+    <p class="hint">Music plays on the farm and celebration screens, and stops for spoken prompts. Music preferences are stored separately from learning progress.</p>
     <label>Talking speed<input id="setRate" type="range" min="0.6" max="1.1" step="0.05" value="${S.settings.rate}"></label>
     <label>Missions per day<select id="setPerDay">${[2, 3, 4, 5].map(n => `<option ${n === S.settings.perDay ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <label>Robot color<br>${COLORS.map(c => `<button class="swatch" data-act="color" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('')}</label>
@@ -933,9 +1019,12 @@ const ACT = {
     S.settings.voice = $('#setVoice').value;
     S.settings.rate = +$('#setRate').value;
     S.settings.perDay = +$('#setPerDay').value;
-    save(); pickVoice(); renderParent('Settings saved.');
+    audioPrefs.music = $('#setMusic').checked; audioPrefs.volume = +$('#setMusicVol').value;
+    try { localStorage.setItem(AUDIO_KEY, JSON.stringify(audioPrefs)); } catch {}
+    sound?.update(); save(); pickVoice(); renderParent('Settings saved.');
   },
-  testVoice: () => say(`Hi ${S.settings.child || 'friend'}! This is how I sound. Find the word: like.`),
+  testVoice: () => say('Hi, friend. Ready to read? Find the word: like.', $('#setVoice').value),
+  previewVoice: b => say('Hi, friend. Ready to read? Find the word: like.', b.dataset.voice),
   testLetters: () => say(L.ABC.map(L.letterName).join(', ')),
   backup: saveBackup,
   reset: () => { if (confirm('Erase ALL progress on this iPad?') && confirm('Really erase everything? This cannot be undone.')) { localStorage.removeItem(KEY); location.reload(); } },
@@ -951,10 +1040,49 @@ $('#parentBody').onchange = e => {
 
 // ---------- boot ----------
 document.addEventListener('visibilitychange', () => {
+  sound?.visibility(document.hidden);
   if (document.hidden) return synth?.cancel();
+  ac?.resume().catch(() => {});
   rollDay();
   if (document.body.dataset.screen === 'farm') renderFarm();
 });
+function countTo(node, value) {
+  if (node.dataset.target === String(value)) return;
+  cancelAnimationFrame(node.counterFrame); node.dataset.target = value;
+  const from = +node.textContent || 0;
+  if (FAST || matchMedia('(prefers-reduced-motion: reduce)').matches) { node.textContent = value; return; }
+  const start = performance.now();
+  const tick = now => {
+    const p = Math.min(1, (now - start) / 300); node.textContent = Math.round(from + (value - from) * p);
+    if (p < 1) node.counterFrame = requestAnimationFrame(tick);
+  };
+  node.counterFrame = requestAnimationFrame(tick);
+}
+function rocketSmoke() {
+  document.querySelectorAll('.smoke').forEach(p => p.remove());
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const r = $('#ship').getBoundingClientRect();
+  for (let i = 0; i < 6; i++) {
+    const p = el('i', 'smoke'); p.style.left = r.left + r.width / 2 - 12 + (i % 3 - 1) * 18 + 'px'; p.style.top = r.bottom + i * 12 + 'px';
+    document.body.append(p); setTimeout(() => p.remove(), 1500);
+  }
+}
+function curious() { const b = $('#bot'); b.classList.remove('thinking'); void b.offsetWidth; b.classList.add('thinking'); }
+function confetti() {
+  document.querySelectorAll('.confetti').forEach(p => p.remove());
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  for (let i = 0; i < 16; i++) {
+    const p = el('i', 'confetti'); p.style.left = 20 + Math.random() * 60 + '%'; p.style.top = 20 + Math.random() * 35 + '%';
+    p.style.background = ['#e9c468', '#8cbdb9', '#9eba7a'][i % 3]; document.body.append(p); setTimeout(() => p.remove(), 1400);
+  }
+}
+$('#bot').replaceChildren(el('span', 'hat'), robotArt());
+for (const [id, name] of Object.entries({ play: 'play', rocket: 'rocket', shopBtn: 'shop', quit: 'home', replay: 'sound', coopQuit: 'home', gear: 'gear', ship: 'rocket' })) putArt($('#' + id), name);
+putArt($('#glitch span'), 'glitch'); putArt($('.rotate'), 'rotate');
+for (const [id, name] of Object.entries({ coins: 'coin', seeds: 'seed', gseeds: 'goldseed', medalN: 'medal' })) {
+  const span = $('#' + id).parentElement; span.firstChild.remove(); span.prepend(art(name));
+}
+putArt($('#trophy'), 'star');
 applyLook(); save();
 if ('serviceWorker' in navigator && !/^(localhost|127\.|\[::1\])/.test(location.hostname)) navigator.serviceWorker.register('sw.js');
 </script>

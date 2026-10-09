@@ -1,6 +1,10 @@
 // Offline cache. Bump VERSION on every deploy so the iPad picks up the new game.
-const VERSION = 'robotfarm-1';
-const CORE = ['./', 'index.html', 'logic.js', 'manifest.webmanifest', 'icon.png', 'fonts/Andika-Regular.woff2'];
+const VERSION = 'robotfarm-2';
+const CORE = [
+  './', 'index.html', 'logic.js', 'ui.css', 'art.js', 'presentation.js', 'sounds.js',
+  'manifest.webmanifest', 'icon.png', 'fonts/Andika-Regular.woff2', 'fonts/Fredoka-Latin.woff2',
+  ...['tap', 'gold', 'silver', 'hmm', 'coin', 'harvest', 'bag', 'complete', 'rocket', 'medal', 'farm'].map(n => `audio/${n}.m4a`),
+];
 self.addEventListener('install', e => e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(
   caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())));

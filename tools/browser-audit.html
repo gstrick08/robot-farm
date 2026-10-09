@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Robot Farm local browser checks</title>
+<style>body{font:16px system-ui;margin:12px;background:#f5f6f0}button{padding:12px;margin:4px}iframe{width:1024px;height:768px;border:1px solid #888;display:block}pre{white-space:pre-wrap;max-width:1024px}</style>
+<p>Local development controls. Use on localhost only; the fixture replaces this browser profile's test progress.</p>
+<button id="fresh">Fresh local test</button><button id="baseline">Load played v1 fixture</button><button id="gate">Hold grown-up gear</button><button id="inspect">Read saved progress</button>
+<button id="small">1024 × 768</button><button id="wide">1180 × 820</button><button data-day="2026-10-09">Day 1</button><button data-day="2026-10-10">Day 2</button><button data-day="2026-10-11">Day 3</button><button id="sound">Sound on</button><button id="decode">Check AAC decoding</button><button id="offline">Install local offline cache</button>
+<iframe id="game" src="about:blank"></iframe><pre id="result"></pre>
+<script>
+const frame=document.querySelector('iframe'),result=document.querySelector('#result');
+if(!/^(localhost|127\.|\[::1\])/.test(location.hostname)){document.body.textContent='These checks are available on localhost only.'}else{
+frame.src='../index.html?fast';
+document.querySelector('#fresh').onclick=()=>{if(!/^(localhost|127\.)/.test(location.hostname))return;localStorage.setItem('robotfarm.v1','null');frame.src='../index.html?fast';result.textContent='Fresh local test started.'};
+document.querySelector('#baseline').onclick=async()=>{if(!/^(localhost|127\.)/.test(location.hostname))return;const r=await fetch('fixtures/played-v1.json');localStorage.setItem('robotfarm.v1',await r.text());frame.src='../index.html?fast';result.textContent='Played v1 fixture loaded.'};
+document.querySelector('#gate').onclick=()=>{const gear=frame.contentDocument.querySelector('#gear');gear.dispatchEvent(new PointerEvent('pointerdown'));setTimeout(()=>gear.dispatchEvent(new PointerEvent('pointerup')),3500)};
+document.querySelector('#inspect').onclick=()=>{result.textContent=localStorage.getItem('robotfarm.v1')};
+document.querySelector('#wide').onclick=()=>{frame.style.width='1180px';frame.style.height='820px'};
+document.querySelector('#small').onclick=()=>{frame.style.width='1024px';frame.style.height='768px'};
+document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{frame.src='../index.html?fast&today='+b.dataset.day});
+document.querySelector('#sound').onclick=()=>{frame.src='../index.html'};
+document.querySelector('#decode').onclick=async()=>{
+  const ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();
+  const {SOUND_FILES}=await import('../sounds.js');
+  const decoded=await Promise.all(SOUND_FILES.map(async n=>{try{const r=await fetch('../audio/'+n+'.m4a');const b=await ac.decodeAudioData(await r.arrayBuffer());return n+': '+b.duration.toFixed(2)+' seconds'}catch{return n+': FAILED'}}));
+  result.textContent=decoded.join('\n');await ac.close();
+};
+document.querySelector('#offline').onclick=async()=>{
+  if(!/^(localhost|127\.)/.test(location.hostname))return;
+  try{await navigator.serviceWorker.register('../sw.js',{scope:'../'});await navigator.serviceWorker.ready;result.textContent='Offline cache installed. Open the game directly, stop this test server, then reload.'}catch(e){result.textContent='Offline check failed: '+e.message}
+};
+}
+</script></html>
