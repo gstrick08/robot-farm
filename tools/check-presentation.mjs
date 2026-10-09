@@ -13,7 +13,7 @@ assert.deepEqual(rankVoices(voices).map(v => v.voiceURI), ['enhanced', 'sam', 'b
 assert.equal(voices.length, 4, 'ranking does not mutate the device list');
 assert.match(voiceQuality(voices[0]), /novelty/);
 assert.match(voiceQuality(voices[1]), /Enhanced/);
-for (const screen of ['mission', 'coop', 'parent', 'page']) assert.equal(musicAllowed(screen, false, false), false);
+for (const screen of ['mission', 'coop', 'parent', 'page', 'drive']) assert.equal(musicAllowed(screen, false, false), false);
 for (const screen of ['start', 'farm', 'reward']) {
   assert.equal(musicAllowed(screen, false, false), true);
   assert.equal(musicAllowed(screen, true, false), false, 'speech always mutes music');
@@ -51,5 +51,5 @@ vm.runInNewContext(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), w
 let installed; events.install({ waitUntil: p => installed = p }); await installed;
 for (const asset of cached.filter(p => p !== './')) assert.ok(existsSync(new URL('../' + asset, import.meta.url)), 'Cached asset exists: ' + asset);
 for (const name of SOUND_FILES) assert.ok(cached.includes('audio/' + name + '.m4a'));
-for (const asset of ['ui.css', 'art.js', 'presentation.js', 'sounds.js', 'fonts/Fredoka-Latin.woff2']) assert.ok(cached.includes(asset));
+for (const asset of ['ui.css', 'art.js', 'presentation.js', 'sounds.js', 'driving.js', 'drive-math.js', 'fonts/Fredoka-Latin.woff2']) assert.ok(cached.includes(asset));
 console.log('Offline asset checks passed ✔');

@@ -145,3 +145,34 @@ body[data-screen="mission"] .bot.thinking { animation: curious .5s ease; }
 
 .mtop { padding-left: calc(26px + env(safe-area-inset-left)); padding-right: calc(26px + env(safe-area-inset-right)); }
 .bot { left: calc(22px + env(safe-area-inset-left)); bottom: calc(8px + env(safe-area-inset-bottom)); }
+
+/* Tractor trails: driving progress is a short, unsaved play session. */
+#drive { background: var(--sky); }
+body[data-screen="drive"] .bot { display: none; }
+.drive-top { position: absolute; top: calc(18px + env(safe-area-inset-top)); left: calc(22px + env(safe-area-inset-left)); right: calc(22px + env(safe-area-inset-right)); z-index: 2; display: flex; align-items: center; gap: 18px; }
+.drive-top h1 { font: 38px Fredoka, sans-serif; margin: 0; }
+.drive-top .drive-score { margin-left: auto; }
+.drive-score { display: flex; align-items: center; gap: 12px; background: var(--card); border: 3px solid var(--edge); border-radius: 24px; padding: 8px 16px; font: 30px Fredoka, sans-serif; }
+.drive-score .art { width: 48px; height: 48px; }
+.drive-world { position: absolute; inset: 0; }
+.drive-world > svg { display: block; width: 100%; height: 100%; }
+.drive-controls { position: absolute; right: calc(22px + env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: 88px 88px; gap: 14px; z-index: 2; }
+.drive-controls button { width: 88px; height: 88px; border: 3px solid var(--edge); border-radius: 24px; background: var(--card); box-shadow: 0 6px var(--shadow); display: grid; place-items: center; touch-action: none; }
+.drive-controls button svg { width: 52px; height: 52px; }
+.drive-controls [data-drive="forward"], .drive-controls [data-drive="reverse"] { grid-column: 1 / 3; justify-self: center; }
+.drive-controls [data-drive="forward"] { background: #a4c687; }
+.drive-controls button.pressed { transform: translateY(4px); background: #d5e3bb; box-shadow: 0 2px var(--shadow); }
+.drive-controls[hidden], .drive-menu[hidden] { display: none; }
+.drive-menu { position: absolute; inset: 112px 24px 24px; z-index: 3; background: var(--sky); border: 3px solid var(--edge); border-radius: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+.drive-menu h2 { font: 42px Fredoka, sans-serif; margin: 0; }
+.drive-road-cards { display: flex; gap: 24px; justify-content: center; }
+.drive-road-card { position: relative; width: 240px; height: 230px; border: 3px solid var(--edge); border-radius: 30px; box-shadow: 0 8px var(--shadow); background: var(--card); }
+.drive-road-card svg { display: block; width: 100%; height: 180px; }
+.drive-road-card span { font: 30px Fredoka, sans-serif; }
+.drive-finish-art { width: 160px; height: 160px; }
+.drive-finish-buttons { display: flex; gap: 28px; }
+#driveBtn { display: flex; justify-content: center; align-items: center; gap: 5px; grid-column: 1 / -1; width: 156px; background: #a4c687; }
+#driveBtn .art { width: 60px; height: 58px; }
+@media (max-height: 760px) { .drive-controls { grid-template-columns: 78px 78px; gap: 12px; } .drive-controls button { width: 78px; height: 78px; } }
+
+.drive-score[hidden] { display: none; }

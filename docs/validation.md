@@ -30,4 +30,12 @@ Repeated Mission Control sessions retain the original coin rewards; the parent p
 
 The voice-pack proposal remains in the local design audit: family recordings, a chosen neural TTS service after terms/account approval, or system-voice recordings only after verifying public distribution rights. No voice files, isolated phonemes, paid service, library or new learning rule were added.
 
-A tractor-and-trailer direction was requested after this validation; its scope is being confirmed before game integration.
+## Tractor trails follow-up
+
+The approved equipment direction is implemented as three immediately available roads: Barn loop, Orchard bends and River bridge. Each has three deterministic cargo deliveries. Driving uses an independent in-memory session; it has no learning rewards, timers, penalties or new v1 fields. Steering buttons also move forward, so one finger is sufficient. Releasing controls, leaving the screen, blurring or backgrounding clears input; background return bounds elapsed time.
+
+`node tools/check-driving.mjs` covers motion, reverse steering, one-finger controls, trailer orientation, stop behavior, bounded elapsed time, cargo stops, nonduplicated loads and three-delivery completion. Driving modules are included in the offline cache and driving music stays off. Real iPad multi-touch feel and measured frame rate remain device acceptance checks.
+
+Browser route harness completed all three roads (3/3 each) through held pointer controls, including automatic loading/unloading and finish screens. The before/after learning-save strings were identical.
+
+The final worker was installed on isolated port 8005, the server was stopped, the game reloaded, and River bridge loaded and returned to the farm without network service. Both driving runtime modules are precached. Driving controls measured at least 78px at the tested small viewport; farm tiles remained 78.203px, with all 60 present. The three road layouts were also captured for review.

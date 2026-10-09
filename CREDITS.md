@@ -1,6 +1,6 @@
 # Asset credits
 
-The hero, LED face, hats, crops and growth stages, animals, scenery and interface icons in `art.js` are original SVG drawings made for Robot Farm. No third-party character art or textures are included.
+The hero, LED face, hats, crops and growth stages, animals, scenery and interface icons in `art.js` and the tractor/trailer/road scenery in `driving.js` are original SVG drawings made for Robot Farm. No third-party character art or textures are included.
 
 The ten effects and 24-second instrumental farm loop in `audio/` are original procedural compositions made for this game, without speech, phonemes or sampled recordings. Their reproducible source is `tools/make-sounds.py` (Python standard library plus macOS `afconvert`; optional asset authoring only, no runtime build step). No system-voice recordings or cloud TTS were generated.
 

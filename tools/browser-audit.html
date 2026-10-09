@@ -1,8 +1,8 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><title>Robot Farm local browser checks</title>
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Robot Farm local browser checks</title><link rel="icon" href="../icon.png">
 <style>body{font:16px system-ui;margin:12px;background:#f5f6f0}button{padding:12px;margin:4px}iframe{width:1024px;height:768px;border:1px solid #888;display:block}pre{white-space:pre-wrap;max-width:1024px}</style>
 <p>Local development controls. Use on localhost only; the fixture replaces this browser profile's test progress.</p>
 <button id="fresh">Fresh local test</button><button id="baseline">Load played v1 fixture</button><button id="gate">Hold grown-up gear</button><button id="inspect">Read saved progress</button>
-<button id="small">1024 × 768</button><button id="wide">1180 × 820</button><button data-day="2026-10-09">Day 1</button><button data-day="2026-10-10">Day 2</button><button data-day="2026-10-11">Day 3</button><button id="sound">Sound on</button><button id="decode">Check AAC decoding</button><button id="offline">Install local offline cache</button>
+<button id="small">1024 × 768</button><button id="wide">1180 × 820</button><button data-day="2026-10-09">Day 1</button><button data-day="2026-10-10">Day 2</button><button data-day="2026-10-11">Day 3</button><button id="sound">Sound on</button><button id="decode">Check AAC decoding</button><button id="offline">Install local offline cache</button><button id="driveCheck">Run tractor route checks</button><button id="driveHold">Hold forward for one second</button>
 <iframe id="game" src="about:blank"></iframe><pre id="result"></pre>
 <script>
 const frame=document.querySelector('iframe'),result=document.querySelector('#result');
@@ -25,6 +25,31 @@ document.querySelector('#decode').onclick=async()=>{
 document.querySelector('#offline').onclick=async()=>{
   if(!/^(localhost|127\.)/.test(location.hostname))return;
   try{await navigator.serviceWorker.register('../sw.js',{scope:'../'});await navigator.serviceWorker.ready;result.textContent='Offline cache installed. Open the game directly, stop this test server, then reload.'}catch(e){result.textContent='Offline check failed: '+e.message}
+};
+document.querySelector('#driveHold').onclick=()=>{
+ const b=frame.contentDocument.querySelector('[data-drive="forward"]');
+ b.dispatchEvent(new PointerEvent('pointerdown',{pointerId:41}));setTimeout(()=>b.dispatchEvent(new PointerEvent('pointerup',{pointerId:41})),1000);
+};
+document.querySelector('#driveCheck').onclick=async()=>{
+ const doc=frame.contentDocument,progress=localStorage.getItem('robotfarm.v1'),wait=ms=>new Promise(r=>setTimeout(r,ms));
+ const release=()=>doc.querySelectorAll('[data-drive]').forEach((b,i)=>b.dispatchEvent(new PointerEvent('pointerup',{pointerId:100+i})));
+ const hold=key=>{release();const b=doc.querySelector('[data-drive="'+key+'"]');const i=[...doc.querySelectorAll('[data-drive]')].indexOf(b);b.dispatchEvent(new PointerEvent('pointerdown',{pointerId:100+i}))};
+ try{
+  if(!doc.querySelector('#drive.on'))doc.querySelector('#driveBtn').click();
+  const results=[];
+  for(let road=0;road<3;road++){
+   doc.querySelector('.drive-roads').click();doc.querySelectorAll('.drive-road-card')[road].click();
+   const deadline=Date.now()+90000;
+   while(!doc.querySelector('.drive-finish-art')&&Date.now()<deadline){
+    const nums=n=>doc.querySelector(n).getAttribute('transform').match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi).map(Number);
+    const [x,y,a]=nums('.drive-tractor'),[tx,ty]=nums('.drive-marker');let error=Math.atan2(ty-y,tx-x)-(a-90)*Math.PI/180;
+    error=Math.atan2(Math.sin(error),Math.cos(error));hold(Math.abs(error)<.12?'forward':error>0?'right':'left');await wait(100);
+    result.textContent='Testing road '+(road+1)+': '+doc.querySelector('.drive-score b').textContent;
+   }
+   release();if(!doc.querySelector('.drive-finish-art'))throw new Error('Road '+(road+1)+' did not finish');results.push(doc.querySelector('#drive').dataset.road+': 3 / 3');
+  }
+  result.textContent=results.join('\n')+'\nLearning save unchanged: '+(progress===localStorage.getItem('robotfarm.v1'));
+ }catch(e){result.textContent='Driving check failed: '+e.message}finally{release()}
 };
 }
 </script></html>
