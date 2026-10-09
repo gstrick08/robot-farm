@@ -1,0 +1,11 @@
+{
+  "name": "Robot Farm",
+  "short_name": "Robot Farm",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#8fd3ff",
+  "theme_color": "#8fd3ff",
+  "icons": [{ "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }]
+}

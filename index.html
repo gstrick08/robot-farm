@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Robot Farm">
+<meta name="theme-color" content="#8fd3ff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Robot Farm</title>
+<style>
+@font-face { font-family: Andika; src: url(fonts/Andika-Regular.woff2) format('woff2'); font-display: swap; }
+:root {
+  --sky: #8fd3ff; --sky2: #d4f0ff; --grass: #6cc644; --soil: #8b5a2b; --water: #4fb3ff;
+  --ink: #1d2b3a; --card: #fffdf6; --gold: #ffcc33; --bot: #3b82f6;
+  font-family: "Avenir Next", Avenir, Verdana, system-ui, sans-serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body { background: linear-gradient(var(--sky), var(--sky2)); color: var(--ink); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; padding: 0; }
+.screen { position: fixed; inset: 0; display: none; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.screen.on { display: flex; }
+.round { width: 72px; height: 72px; border-radius: 50%; font-size: 34px; background: rgba(255,255,255,.9); box-shadow: 0 5px 0 rgba(0,0,0,.18); }
+.round:active, .pod:active, .opt:active, .choice:active { transform: translateY(3px); }
+
+/* start */
+#start { flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
+.logo { margin: 0; font-size: 96px; line-height: .95; text-align: center; color: #fff; letter-spacing: 2px; text-shadow: 0 6px 0 #3b6e22, 0 10px 18px rgba(0,0,0,.25); font-weight: 900; }
+.play { width: 170px; height: 170px; border-radius: 40px; font-size: 90px; color: #fff; background: #22c55e; box-shadow: 0 10px 0 #15803d; }
+.play.small { width: 120px; height: 120px; font-size: 64px; border-radius: 30px; margin-top: 18px; }
+.colors { display: flex; gap: 26px; }
+.swatch { width: 110px; height: 110px; border-radius: 30px; box-shadow: 0 8px 0 rgba(0,0,0,.25); }
+.colors[hidden] { display: none; }
+
+/* robot (original design; never red, which is Letterland's "r") */
+.bot { position: fixed; left: 18px; bottom: 14px; width: 96px; z-index: 5; pointer-events: none; animation: bob 2.4s ease-in-out infinite; }
+.bot .head { height: 64px; border-radius: 20px; background: var(--bot); position: relative; box-shadow: inset 0 -7px rgba(0,0,0,.18); }
+.bot .head::before { content: ''; position: absolute; left: 50%; top: -16px; width: 6px; height: 16px; margin-left: -3px; background: #5b6470; }
+.bot .head::after { content: ''; position: absolute; left: 50%; top: -26px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--gold); }
+.bot .head i { position: absolute; top: 16px; width: 18px; height: 22px; border-radius: 9px; background: #fff; }
+.bot .head i:first-child { left: 18px; } .bot .head i:nth-child(2) { right: 18px; }
+.bot .head i::after { content: ''; position: absolute; left: 5px; top: 6px; width: 8px; height: 10px; border-radius: 4px; background: var(--ink); }
+.bot .head b { position: absolute; bottom: 10px; left: 50%; width: 30px; height: 6px; margin-left: -15px; border-radius: 3px; background: var(--ink); }
+.bot.talk .head b { animation: talk .22s infinite alternate; }
+.bot .body { width: 64px; height: 34px; margin: 4px auto 0; border-radius: 12px 12px 8px 8px; background: var(--bot); filter: brightness(.88); }
+.bot .hat { position: absolute; top: -58px; left: 0; right: 0; text-align: center; font-size: 46px; }
+.bot.happy { animation: hop .45s ease 2; }
+body[data-screen="parent"] .bot, body[data-screen="page"] .bot { display: none; }
+@keyframes bob { 50% { transform: translateY(-6px); } }
+@keyframes hop { 50% { transform: translateY(-34px); } }
+@keyframes talk { to { height: 15px; border-radius: 8px; } }
+
+/* farm */
+#farm { align-items: center; justify-content: center; gap: 20px; padding-left: 130px; }
+.hud { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; gap: 22px; font-size: 30px; font-weight: 800; background: rgba(255,255,255,.8); padding: 6px 22px; border-radius: 30px; white-space: nowrap; }
+#grid { width: min(calc(100vw - 340px), calc((100vh - 110px) * 10 / 6)); display: grid; grid-template-columns: repeat(10, 1fr); margin-top: 56px; border: 6px solid #4a7d2a; border-radius: 10px; box-shadow: 0 8px 0 rgba(0,0,0,.2); overflow: hidden; }
+.tile { aspect-ratio: 1; display: grid; place-items: center; position: relative; font-size: min(4.6vw, 7.4vh); line-height: 1; }
+.tile.grass { background: var(--grass) repeating-conic-gradient(rgba(0,0,0,.05) 0 25%, transparent 0 50%) 0 0 / 50% 50%; }
+.tile.soil { background: var(--soil) repeating-linear-gradient(0deg, rgba(0,0,0,.14) 0 5px, transparent 5px 14px); }
+.tile.water { background: var(--water) repeating-linear-gradient(135deg, rgba(255,255,255,.18) 0 6px, transparent 6px 16px); }
+.tile.seed { font-size: min(2vw, 3.4vh); }
+.tile.sprout { font-size: min(3vw, 5vh); }
+.tile.ready { animation: ready 1.3s ease-in-out infinite; }
+.tile.golden { filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 3px gold); }
+.tile .mini { font-size: .62em; margin-top: -14px; }
+.tile small { position: absolute; bottom: 3px; font-size: 15px; font-weight: 800; background: #fff; border-radius: 6px; padding: 0 5px; font-family: Andika, Verdana, sans-serif; }
+body.placing .tile.grass:empty { outline: 3px dashed rgba(255,255,255,.8); outline-offset: -6px; }
+@keyframes ready { 50% { transform: scale(1.12); } }
+.board { display: flex; flex-direction: column; gap: 14px; margin-top: 50px; }
+.pods { display: flex; flex-direction: column; gap: 14px; }
+.pod { width: 100px; height: 100px; border-radius: 50%; font-size: 50px; background: radial-gradient(circle at 35% 30%, #fff, #bfe7ff 60%, #7cc8f4); box-shadow: 0 6px 0 rgba(0,0,0,.2); }
+.pod.done { background: radial-gradient(circle at 35% 30%, #fff8d6, #ffd84d); }
+.pod.glow { animation: glow 1.6s ease-in-out infinite; }
+.pod.shopbtn { background: radial-gradient(circle at 35% 30%, #fff, #ffe2b8 60%, #f4b46c); }
+@keyframes glow { 50% { box-shadow: 0 6px 0 rgba(0,0,0,.2), 0 0 0 10px rgba(255,255,255,.7); } }
+.placing { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 46px; background: rgba(255,255,255,.9); padding: 4px 24px; border-radius: 30px; animation: glow 1.6s infinite; }
+.placing[hidden] { display: none; }
+
+/* mission */
+#mission, #coop { flex-direction: column; align-items: center; }
+.mtop { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 14px 22px; }
+.bag { display: flex; gap: 6px; background: rgba(255,255,255,.8); padding: 8px 16px; border-radius: 40px; }
+.bag i { width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,.1); display: grid; place-items: center; font-style: normal; font-size: 24px; }
+.bag i.on::after { content: '🌱'; }
+.prompt { font-size: 120px; line-height: 1.1; margin: 0; min-height: 10px; }
+.prompt.teach, .prompt.twin { background: var(--card); padding: 6px 56px 14px; border-radius: 30px; box-shadow: 0 8px 0 rgba(0,0,0,.2); animation: pop .35s; }
+.prompt.teach { font-size: 150px; }
+.opts { flex: 1; width: 100%; display: flex; flex-wrap: wrap; gap: 26px; justify-content: center; align-content: center; max-width: 980px; padding: 0 24px 130px; }
+.opts.hidden { visibility: hidden; }
+.opt { min-width: 180px; min-height: 130px; padding: 4px 30px 12px; font-size: 76px; line-height: 1.2; background: var(--card); border-radius: 24px; box-shadow: 0 8px 0 rgba(0,0,0,.22); transition: opacity .3s, transform .15s; }
+.opts.locked .opt:not(.faded) { opacity: .6; }
+.opt.faded { opacity: .15; transform: scale(.88); }
+.opt.right { background: #d9ffd0; transform: scale(1.08); opacity: 1; }
+.opt.hint { outline: 7px solid var(--gold); animation: wiggle .7s ease-in-out infinite; }
+.opts.grid { max-width: 860px; }
+.opts.grid .opt { min-width: 230px; font-size: 62px; }
+.opts.pods .opt { border-radius: 90px; background: radial-gradient(circle at 35% 30%, #fff, #d4efff); min-width: 220px; }
+.opts.blocks .opt { border-radius: 6px; min-width: 150px; min-height: 150px; font-size: 96px; background: #cfcfcf repeating-conic-gradient(rgba(0,0,0,.07) 0 25%, transparent 0 50%) 0 0 / 22px 22px; border: 7px solid #9b9b9b; }
+.glitch { position: absolute; right: 50px; top: 90px; font-size: 130px; transition: transform .4s; transform-origin: top right; }
+.glitch span { display: inline-block; text-shadow: 3px 0 #ff4fd8, -3px 0 #3ee6ff; animation: jitter .4s steps(2) infinite; }
+.glitch span.wob { animation: wob .5s; }
+.glitch[hidden] { display: none; }
+@keyframes wiggle { 25% { transform: rotate(-4deg) scale(1.05); } 75% { transform: rotate(4deg) scale(1.05); } }
+@keyframes pop { from { transform: scale(.6); opacity: 0; } }
+@keyframes jitter { 50% { transform: translate(2px, -1px); } }
+@keyframes wob { 30% { transform: rotate(-14deg); } 70% { transform: rotate(12deg); } }
+
+/* mission control */
+.ctitle { font-size: 28px; font-weight: 800; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.2); }
+.bigcard { font-size: 190px; line-height: 1.15; background: var(--card); padding: 10px 80px 30px; border-radius: 34px; margin-top: 40px; min-width: 380px; text-align: center; box-shadow: 0 10px 0 rgba(0,0,0,.2); }
+.bigcard.pop { animation: pop .3s; }
+.fuel { position: absolute; right: 70px; top: 190px; width: 44px; height: 300px; border: 5px solid #fff; border-radius: 22px; overflow: hidden; background: rgba(255,255,255,.35); }
+.fuel > div { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(#ffd23f, #ff8a00); transition: height .4s; }
+.ship { position: absolute; right: 52px; top: 96px; font-size: 80px; }
+.ship.launch { animation: launch 1.8s ease-in forwards; }
+@keyframes launch { to { transform: translateY(-120vh) rotate(-8deg); } }
+.pstrip { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 12px; align-items: center; justify-content: flex-end; padding: 10px 18px calc(10px + env(safe-area-inset-bottom)); background: rgba(35,45,58,.88); color: #fff; font-size: 16px; }
+.pstrip button { background: #e6e9ee; color: #1d2b3a; border-radius: 12px; padding: 0 16px; font-size: 17px; min-height: 52px; }
+.answer { margin-right: auto; padding-left: 110px; opacity: .9; }
+.bar3 { width: 90px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.25); overflow: hidden; }
+.bar3 i { display: block; height: 100%; width: 0; background: var(--gold); }
+.bar3.go i { width: 100%; transition: width 3s linear; }
+
+/* practice page (looks like a printed sheet) */
+#page { flex-direction: column; background: #fff; }
+.phead, .phead2 { display: flex; gap: 12px; align-items: center; padding: 12px 18px; background: #f1f4f8; font-size: 16px; }
+.phead span { flex: 1; }
+.phead button, .pbtn, .pwrap button, .pwrap .file { background: #1d2b3a; color: #fff; border-radius: 10px; padding: 10px 16px; font-size: 16px; display: inline-block; cursor: pointer; }
+.page { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px 10px; padding: 26px 40px; font-size: 46px; align-content: start; overflow: auto; }
+.page.letters { grid-template-columns: repeat(10, 1fr); font-size: 44px; }
+.pw { padding: 6px; border-radius: 10px; position: relative; }
+.pw.seed { background: #fff3c4; }
+.pw.seed::after { content: '🌱'; position: absolute; top: -8px; right: -2px; font-size: 22px; }
+
+/* grown-up area */
+#parent { background: #f6f8fb; overflow: auto; display: none; }
+#parent.on { display: block; }
+.pwrap { max-width: 920px; margin: 0 auto; padding: 0 18px 60px; user-select: text; -webkit-user-select: text; }
+.phead2 { justify-content: space-between; background: none; padding: 18px 0 6px; }
+.phead2 h1 { margin: 0; font-size: 26px; }
+.pwrap section { background: #fff; border-radius: 16px; padding: 14px 18px; margin: 14px 0; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.pwrap h2 { font-size: 19px; margin: 4px 0 10px; }
+.pwrap p, .pwrap li { font-size: 15px; line-height: 1.5; }
+.pwrap label { display: block; margin: 10px 0; font-size: 15px; }
+.pwrap input:not([type]), .pwrap select, .pwrap textarea { display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #cbd3dd; border-radius: 8px; }
+.pwrap input[type=range] { width: 100%; }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.pwrap .danger { background: #fff; color: #b42318; border: 1px solid #f0c3bf; }
+.chip { display: inline-block; min-width: 34px; text-align: center; padding: 3px 9px; margin: 3px; border-radius: 9px; font-size: 18px; font-family: Andika, Verdana, sans-serif; background: #eef1f5; }
+.chip.learning { background: #fff1b8; } .chip.known { background: #cfe6ff; } .chip.mastered { background: #c9f2c7; }
+.letters { display: flex; flex-wrap: wrap; }
+.letters .chip { min-width: 30px; padding: 2px 4px; margin: 2px; }
+.banner { background: #fff7d6; border: 1px solid #f1d675; border-radius: 12px; padding: 10px 14px; margin-top: 12px; font-size: 16px; }
+.badge { background: #fff1b8; border-radius: 8px; padding: 2px 8px; font-size: 15px; }
+.hint { color: #4b5563; }
+.list { border-top: 1px solid #eef1f5; padding-top: 8px; margin-top: 8px; }
+.pwrap .swatch { width: 40px; height: 40px; border-radius: 10px; margin: 4px 6px 0 0; padding: 0; vertical-align: middle; }
+
+/* gear, modal, effects */
+.gear { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: 12px; width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.5); font-size: 22px; z-index: 6; }
+.gear.holding { animation: fill 3s linear forwards; }
+@keyframes fill { to { transform: rotate(360deg); background: rgba(255,204,51,.95); } }
+body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none; }
+.modal { position: fixed; inset: 0; background: rgba(20,30,40,.4); display: grid; place-items: center; z-index: 20; }
+.modal[hidden] { display: none; }
+.mbox { background: var(--card); border-radius: 30px; padding: 26px 30px; max-width: 92vw; max-height: 92vh; overflow: auto; text-align: center; box-shadow: 0 10px 0 rgba(0,0,0,.2); animation: pop .3s; }
+.mbox h2 { margin: 0 0 14px; font-size: 26px; }
+.row { display: flex; gap: 16px; justify-content: center; margin: 10px 0; }
+.choice { font-size: 58px; width: 116px; height: 116px; border-radius: 24px; background: #fff; box-shadow: 0 6px 0 rgba(0,0,0,.2); }
+.choice.golden { background: #fff3b0; filter: drop-shadow(0 0 7px gold); }
+.shop { display: grid; grid-template-columns: repeat(6, 112px); gap: 14px; margin-bottom: 16px; }
+.shop-item { height: 120px; border-radius: 22px; background: #fff; box-shadow: 0 6px 0 rgba(0,0,0,.18); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.shop-item .e { font-size: 54px; line-height: 1; } .shop-item .p { font-size: 18px; font-weight: 800; }
+.shop-item.dim { opacity: .4; } .shop-item.sel { outline: 6px solid var(--gold); }
+.sum { font-size: 64px; line-height: 1.2; max-width: 80vw; }
+.gate-in { font-size: 36px; width: 180px; text-align: center; padding: 8px; border-radius: 12px; border: 2px solid #cbd3dd; margin-right: 10px; }
+.floaty { position: fixed; transform: translate(-50%, 0); font-size: 30px; font-weight: 900; pointer-events: none; animation: floatup 1s ease-out forwards; z-index: 30; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,.4); }
+@keyframes floatup { to { transform: translate(-50%, -70px); opacity: 0; } }
+.fly { position: fixed; font-size: 42px; margin: -21px 0 0 -21px; transition: transform .55s ease-in; z-index: 30; pointer-events: none; }
+.rotate { position: fixed; inset: 0; background: var(--sky); display: none; place-items: center; font-size: 110px; z-index: 50; }
+@media (orientation: portrait) and (max-width: 1100px) and (pointer: coarse) { .rotate { display: grid; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body data-screen="start">
+
+<main id="start" class="screen on">
+  <h1 class="logo">Robot<br>Farm</h1>
+  <button id="play" class="play" aria-label="Play">▶</button>
+  <div id="colors" class="colors" hidden></div>
+</main>
+
+<main id="farm" class="screen">
+  <div class="hud"><span>🪙 <b id="coins">0</b></span><span>🌱 <b id="seeds">0</b></span><span>✨ <b id="gseeds">0</b></span><span id="medals" hidden>🏅 <b id="medalN">0</b>/6</span><span id="trophy" hidden>🏆</span></div>
+  <div id="grid" class="grid"></div>
+  <aside class="board">
+    <div id="pods" class="pods"></div>
+    <button id="rocket" class="pod" aria-label="Mission Control">🚀</button>
+    <button id="shopBtn" class="pod shopbtn" aria-label="Shop">🛒</button>
+  </aside>
+  <div id="placing" class="placing" hidden></div>
+</main>
+
+<main id="mission" class="screen">
+  <div class="mtop"><button id="quit" class="round" aria-label="Back to the farm">🏡</button><div id="bag" class="bag"></div><button id="replay" class="round" aria-label="Hear it again">🔊</button></div>
+  <div id="glitch" class="glitch" hidden><span>☁️</span></div>
+  <div id="prompt" class="prompt"></div>
+  <div id="opts" class="opts"></div>
+</main>
+
+<main id="coop" class="screen">
+  <div class="mtop"><button id="coopQuit" class="round" aria-label="Back to the farm">🏡</button><span class="ctitle">Mission Control</span><span style="width:72px"></span></div>
+  <div id="card" class="bigcard"></div>
+  <div class="fuel"><div id="fuel"></div></div>
+  <div id="ship" class="ship">🚀</div>
+  <div class="pstrip">
+    <span id="answer" class="answer"></span>
+    <div class="bar3" title="3 seconds"><i></i></div>
+    <button data-r="fast">✓ Instant</button><button data-r="slow">⏳ Slow</button><button data-r="again">↺ Again later</button>
+  </div>
+</main>
+
+<main id="page" class="screen">
+  <div class="phead"><span id="pageTitle"></span><button id="pageDone">Done</button><button id="pageCancel">Cancel</button></div>
+  <div id="pageGrid" class="page"></div>
+</main>
+
+<main id="parent" class="screen"><div class="pwrap">
+  <div class="phead2"><h1>Grown-up area</h1><button id="parentBack">Back to the game</button></div>
+  <div id="parentBody"></div>
+</div></main>
+
+<div id="bot" class="bot" aria-hidden="true"><span class="hat"></span><div class="head"><i></i><i></i><b></b></div><div class="body"></div></div>
+<button id="gear" class="gear" aria-label="Grown-ups: hold for 3 seconds">⚙️</button>
+<div id="modal" class="modal" hidden></div>
+<div class="rotate">📱↪️</div>
+
+<script type="module">
+import * as L from './logic.js';
+
+const $ = s => document.querySelector(s);
+const el = (tag, cls = '', text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const button = (cls, text, fn) => { const b = el('button', cls, text); b.onclick = fn; return b; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const qs = new URLSearchParams(location.search);
+const FAST = qs.has('fast');                       // testing: silent, short waits
+const TODAY = () => qs.get('today') || L.today(); // testing: ?today=2026-10-11 makes crops grow
+const sleep = ms => new Promise(r => setTimeout(r, FAST ? ms / 10 : ms));
+
+// ---------- saved state (lives only on this iPad) ----------
+const KEY = 'robotfarm.v1';
+const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7']; // no red: Letterland's Red Robot stands for "r"
+function newFarm() {
+  const t = Array.from({ length: 60 }, () => ({ t: 'grass' })); // 10 x 6 tiles
+  const ago = n => { const d = new Date(TODAY() + 'T12:00'); d.setDate(d.getDate() - n); return L.today(d); };
+  [21, 22, 23, 31, 32, 33].forEach((i, n) => { t[i] = { t: 'soil' }; if (n < 3) t[i].crop = { kind: 'carrot', planted: ago(2) }; }); // a harvest on day one
+  t[8].thing = 'ship'; t[46].thing = 'tree'; t[59].thing = 'tree';
+  return t;
+}
+const fresh = () => ({
+  v: 1, start: TODAY(),
+  settings: { child: '', color: '', voice: '', rate: 0.85, perDay: 3 },
+  lists: [{ words: [...L.LIST_1], say: {} }], cur: 0,
+  items: {}, day: { date: TODAY(), done: [], coop: 0 }, log: {},
+  coins: 0, seeds: 3, goldSeeds: 0, hat: '', placing: null, newBots: [], streak: 0, best: { streak: 0 },
+  farm: newFarm(),
+});
+let S = fresh();
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s?.v === 1) S = { ...fresh(), ...s, settings: { ...fresh().settings, ...s.settings } }; } catch {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { console.warn('save failed', e); } };
+
+const item = k => (S.items[k] ||= L.newItem());
+const peek = k => S.items[k] || L.newItem();
+const status = it => L.isMastered(it) ? 'mastered' : L.isKnown(it) ? 'known' : it.last ? 'learning' : 'new';
+const curList = () => S.lists[S.cur];
+const listKeys = l => l.words.map(w => 'W:' + w);
+const wordKeys = () => [...new Set(S.lists.slice(0, S.cur + 1).flatMap(listKeys))]; // current list + earlier lists (review)
+const sayWord = w => S.lists.find(l => l.say?.[w])?.say[w] || w;
+const speak = k => L.isLetterKey(k) ? L.letterName(L.keyText(k)) : sayWord(L.keyText(k));
+const caseWord = k => L.isUpper(L.keyText(k)) ? 'big' : 'little';
+const dayIndex = () => Math.max(0, L.daysBetween(S.start, TODAY()));
+function rollDay() { if (S.day.date !== TODAY()) { S.day = { date: TODAY(), done: [], coop: 0 }; save(); } }
+const logToday = k => { (S.log[TODAY()] ||= { m: 0, g: 0, c: 0 })[k]++; };
+// Mastery can happen on a solo tap or a read-aloud; collect it for a "bot rescued!" party.
+function track(k, fn) { const it = item(k), was = L.isMastered(it); fn(it); if (!was && L.isMastered(it)) S.newBots.push(k); }
+
+// ---------- sound effects (synthesized, gentle; no buzzers) ----------
+let ac;
+function tone(notes, dur = 0.12, type = 'sine', vol = 0.12) {
+  if (!ac) return;
+  let t = ac.currentTime;
+  for (const f of notes) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur);
+    t += dur * 0.8;
+  }
+}
+const sfx = {
+  pop: () => tone([880, 1175], 0.06),
+  gold: () => tone([660, 880, 1320], 0.11),
+  silver: () => tone([523, 659], 0.1),
+  soft: () => tone([392, 349], 0.16, 'triangle', 0.05),
+  coin: () => tone([988, 1319], 0.08, 'square', 0.04),
+  win: () => tone([523, 659, 784, 1047, 1319], 0.15),
+};
+
+// ---------- voice ----------
+const synth = window.speechSynthesis;
+let voice = null;
+function pickVoice() {
+  const vs = synth?.getVoices() || [], us = vs.filter(v => v.lang === 'en-US');
+  voice = vs.find(v => v.voiceURI === S.settings.voice) || us.find(v => /enhanced|premium/i.test(v.name)) ||
+    us.find(v => /samantha/i.test(v.name)) || us[0] || vs.find(v => /^en/.test(v.lang)) || null;
+}
+if (synth) { pickVoice(); synth.onvoiceschanged = pickVoice; }
+let talkId = 0;
+function say(text) {
+  console.debug('🤖', text);
+  const id = ++talkId, bot = $('#bot');
+  return new Promise(res => {
+    let done = false;
+    const fin = () => { if (done) return; done = true; if (id === talkId) bot.classList.remove('talk'); res(); };
+    if (FAST || !synth) return setTimeout(fin, FAST ? 30 : 400 + text.length * 70);
+    setTimeout(fin, 1500 + text.length * 90 / S.settings.rate); // iOS sometimes never fires onend
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (voice) u.voice = voice;
+    u.lang = 'en-US'; u.rate = S.settings.rate;
+    u.onend = u.onerror = fin;
+    bot.classList.add('talk');
+    synth.speak(u);
+  });
+}
+
+// ---------- screens & helpers ----------
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  document.body.dataset.screen = id;
+}
+function applyLook() {
+  document.body.style.setProperty('--bot', S.settings.color || COLORS[0]);
+  $('#bot .hat').textContent = S.hat || '';
+}
+const happy = () => { const b = $('#bot'); b.classList.remove('happy'); void b.offsetWidth; b.classList.add('happy'); };
+const modal = $('#modal');
+function openModal(title, sticky = false) {
+  modal.replaceChildren(); modal.hidden = false; modal.dataset.sticky = sticky ? '1' : '';
+  const box = el('div', 'mbox');
+  if (title) box.append(el('h2', '', title));
+  modal.append(box);
+  return box;
+}
+function closeModal() { modal.hidden = true; modal.replaceChildren(); }
+modal.onclick = e => { if (e.target === modal && !modal.dataset.sticky) closeModal(); };
+function floaty(from, text) {
+  const r = from.getBoundingClientRect(), f = el('div', 'floaty', text);
+  f.style.left = r.left + r.width / 2 + 'px'; f.style.top = r.top + 'px';
+  document.body.append(f); setTimeout(() => f.remove(), 1000);
+}
+async function celebrateBots() {
+  const ks = S.newBots.splice(0); save();
+  if (!ks.length) return;
+  const box = openModal('', true);
+  box.append(el('div', 'sum', '🤖'.repeat(Math.min(ks.length, 6))), el('div', 'sum', ks.slice(0, 8).map(L.keyText).join('  ')));
+  sfx.win(); happy();
+  await say(ks.length === 1 ? `You rescued a bot! It loves ${speak(ks[0])}!` : `You rescued ${ks.length} bots! They moved onto your farm!`);
+  await sleep(700); closeModal();
+}
+
+// ---------- start ----------
+$('#play').onclick = () => {
+  ac ||= new (window.AudioContext || window.webkitAudioContext)();
+  ac.resume();
+  if (synth && !FAST) synth.speak(new SpeechSynthesisUtterance(' ')); // iOS: the first speech must come from a tap
+  navigator.storage?.persist?.();
+  sfx.pop();
+  if (S.settings.color) return goFarm();
+  $('#play').hidden = true;
+  const c = $('#colors'); c.hidden = false;
+  c.replaceChildren(...COLORS.map(col => {
+    const b = button('swatch', '', () => { S.settings.color = col; save(); applyLook(); happy(); sfx.gold(); say("I love it! Let's go to the farm!").then(goFarm); });
+    b.style.background = col; b.setAttribute('aria-label', 'robot color');
+    return b;
+  }));
+  say('Hi! I am your robot. Pick my color!');
+};
+
+// ---------- farm ----------
+const CROPS = { carrot: '🥕', corn: '🌽', strawberry: '🍓', pumpkin: '🎃' };
+const SHOP = [
+  { id: 'chicken', e: '🐔', name: 'chicken', price: 5, kind: 'animal', sound: 'Cluck cluck!' },
+  { id: 'pig', e: '🐷', name: 'pig', price: 8, kind: 'animal', sound: 'Oink oink!' },
+  { id: 'sheep', e: '🐑', name: 'sheep', price: 10, kind: 'animal', sound: 'Baa!' },
+  { id: 'cow', e: '🐮', name: 'cow', price: 12, kind: 'animal', sound: 'Moo!' },
+  { id: 'horse', e: '🐴', name: 'horse', price: 15, kind: 'animal', sound: 'Neigh!' },
+  { id: 'soil', e: '🟫', name: 'garden spot', price: 4, kind: 'ground' },
+  { id: 'flower', e: '🌻', name: 'sunflower', price: 2, kind: 'decor' },
+  { id: 'tree', e: '🌳', name: 'tree', price: 3, kind: 'decor' },
+  { id: 'rock', e: '🪨', name: 'rock', price: 1, kind: 'decor' },
+  { id: 'brick', e: '🧱', name: 'brick block', price: 1, kind: 'decor' },
+  { id: 'wood', e: '🪵', name: 'wood block', price: 1, kind: 'decor' },
+  { id: 'water', e: '🟦', name: 'pond', price: 4, kind: 'ground' },
+  { id: 'house', e: '🏠', name: 'house', price: 20, kind: 'decor' },
+  { id: 'tractor', e: '🚜', name: 'tractor', price: 25, kind: 'decor' },
+  { id: 'cap', e: '🧢', name: 'cap', price: 4, kind: 'hat' },
+  { id: 'tophat', e: '🎩', name: 'top hat', price: 8, kind: 'hat' },
+  { id: 'crown', e: '👑', name: 'crown', price: 20, kind: 'hat' },
+];
+const THING = Object.fromEntries([...SHOP, { id: 'ship', e: '🛸', name: 'space ship' }].map(x => [x.id, x]));
+let greeted = false;
+
+function goFarm() {
+  rollDay(); closeModal(); show('farm'); renderFarm();
+  if (S.party) return medalParty();
+  if (S.placing) return say(`Tap an empty spot for your ${THING[S.placing].name}!`);
+  if (greeted) return;
+  greeted = true;
+  const ready = S.farm.some(t => t.crop && L.cropStage(t.crop, TODAY()) === 'ready');
+  say(`Hi ${S.settings.child || 'friend'}! ` + (ready ? 'Your crops are ready. Tap them to pick them!' : 'Pick a mission!'));
+}
+
+async function medalParty() { // the teacher said he passed a list
+  S.party = false; save();
+  const box = openModal('', true), m = el('div', 'sum', '🏅');
+  m.style.fontSize = '150px'; box.append(m);
+  sfx.win(); happy();
+  await say(`You passed your heart word list! You earned a medal! That's ${S.lists.filter(l => l.passed).length} of 6!`);
+  await sleep(800); closeModal();
+}
+
+function renderFarm() {
+  $('#coins').textContent = S.coins; $('#seeds').textContent = S.seeds; $('#gseeds').textContent = S.goldSeeds;
+  const medals = S.lists.filter(l => l.passed).length;
+  $('#medals').hidden = !medals; $('#medalN').textContent = medals;
+  $('#trophy').hidden = !(curList().ready && !curList().passed); // READY TO TEST: time to send the teacher a note
+  const d = TODAY();
+  const bots = L.shuffle(Object.keys(S.items).filter(k => L.isMastered(S.items[k])));
+  const open = L.shuffle(S.farm.map((_, i) => i).filter(i => S.farm[i].t === 'grass' && !S.farm[i].thing));
+  const botAt = new Map(open.slice(0, Math.min(14, bots.length)).map((i, n) => [i, bots[n]])); // rescued bots wander
+  $('#grid').replaceChildren(...S.farm.map((t, i) => {
+    const b = el('button', 'tile ' + t.t);
+    if (t.crop) {
+      const st = L.cropStage(t.crop, d);
+      b.textContent = st === 'ready' ? CROPS[t.crop.kind] : '🌱';
+      b.classList.add(st);
+      if (t.crop.gold) b.classList.add('golden');
+    } else if (t.thing) b.textContent = THING[t.thing].e;
+    else if (botAt.has(i)) { const k = botAt.get(i); b.append(el('span', 'mini', '🤖'), el('small', '', L.keyText(k))); b.dataset.say = speak(k); }
+    b.onclick = () => tapTile(i, b);
+    return b;
+  }));
+  document.body.classList.toggle('placing', !!S.placing);
+  $('#placing').hidden = !S.placing;
+  if (S.placing) $('#placing').textContent = '👆 ' + THING[S.placing].e;
+  renderPods();
+}
+
+function tapTile(i, b) {
+  const t = S.farm[i], d = TODAY();
+  if (S.placing) return place(i);
+  if (t.crop) {
+    const st = L.cropStage(t.crop, d);
+    if (st !== 'ready') return say(st === 'sprout' ? 'It is growing! Come back tomorrow.' : 'Just planted! Come back tomorrow.');
+    const n = t.crop.gold ? 10 : 2;
+    S.coins += n; delete t.crop; save(); sfx.coin(); floaty(b, `+${n} 🪙`); renderFarm();
+    return say(pick(['Yum!', 'Nice picking!', 'Harvest time!']));
+  }
+  if (t.t === 'soil') return S.seeds || S.goldSeeds ? chooseCrop(i) : say('You need seeds. Go on a mission to get more!');
+  if (t.thing) {
+    const th = THING[t.thing];
+    if (th.kind === 'animal' && t.fed !== d) { t.fed = d; S.coins++; save(); sfx.coin(); floaty(b, '+1 🪙'); renderFarm(); } // one coin per animal per day
+    return say(th.sound || (t.thing === 'ship' ? 'That is my space ship. It crashed here!' : th.name));
+  }
+  if (b.dataset.say) { sfx.pop(); return say(b.dataset.say); }
+}
+
+function chooseCrop(i) {
+  const box = openModal('');
+  for (const gold of [false, true]) {
+    if (gold ? !S.goldSeeds : !S.seeds) continue;
+    const r = el('div', 'row');
+    for (const [kind, e] of Object.entries(CROPS)) r.append(button('choice' + (gold ? ' golden' : ''), e, () => plant(i, kind, gold)));
+    box.append(r);
+  }
+  say(S.goldSeeds ? 'What do you want to plant? The shiny ones are golden!' : 'What do you want to plant?');
+}
+function plant(i, kind, gold) {
+  closeModal();
+  if (gold) S.goldSeeds--; else S.seeds--;
+  S.farm[i].crop = { kind, planted: TODAY(), gold };
+  save(); sfx.pop(); renderFarm();
+  say('Planted! Come back tomorrow to see it grow.');
+}
+
+function openShop() {
+  if (S.placing) return say(`First, tap a spot for your ${THING[S.placing].name}!`);
+  const box = openModal(''), grid = el('div', 'shop');
+  let sel = null;
+  for (const it of SHOP) {
+    const b = el('button', 'shop-item' + (S.coins < it.price ? ' dim' : ''));
+    b.append(el('span', 'e', it.e), el('span', 'p', `${it.price} 🪙`));
+    b.onclick = () => {
+      const roomy = it.kind === 'hat' || S.farm.some(t => t.t === 'grass' && !t.thing);
+      if (sel === b && S.coins >= it.price && roomy) return buy(it); // second tap buys
+      grid.querySelector('.sel')?.classList.remove('sel'); b.classList.add('sel'); sel = b;
+      if (S.coins < it.price) return say(`${it.name}. ${it.price} coins. Let's get more coins first!`);
+      say(roomy ? `${it.name}. ${it.price} coins. Tap it again to buy it!` : 'Your farm is full!');
+    };
+    grid.append(b);
+  }
+  box.append(grid, button('round', '🔙', closeModal));
+  say(`You have ${S.coins} coins. Pick something!`);
+}
+function buy(it) {
+  S.coins -= it.price; sfx.coin(); closeModal();
+  if (it.kind === 'hat') { S.hat = it.e; save(); applyLook(); happy(); return say('Looking good!'); }
+  S.placing = it.id; save(); renderFarm(); // saved, so a closed app never loses what he bought
+  say(`Tap an empty spot for your ${it.name}!`);
+}
+function place(i) {
+  const t = S.farm[i], it = THING[S.placing];
+  if (t.t !== 'grass' || t.thing) return say('Pick an empty grass spot!');
+  if (it.kind === 'ground') t.t = it.id; else t.thing = it.id;
+  S.placing = null; save(); sfx.pop(); renderFarm();
+  say('Great spot!');
+}
+
+// ---------- mission board ----------
+const MISSION = {
+  hunt: { icon: '🔎', intro: 'Word Hunt! Find the heart word I say.' },
+  pods: { icon: '🫧', intro: 'Rescue Pods! Find the pod with my heart word.' },
+  letters: { icon: '⛏️', intro: 'Letter Mine! Find the letter I say.' },
+  twins: { icon: '🔠', intro: 'Twin Match! Every big letter has a little twin.' },
+  boss: { icon: '☁️', intro: 'Oh no! Glitch scrambled the farm! Read carefully to fix it.' },
+};
+function todaysMissions() {
+  const words = wordKeys(), hasWords = words.length >= 2;
+  const known = [...words, ...L.LETTER_KEYS].filter(k => L.isKnown(peek(k))).length;
+  return L.dailyMissions(dayIndex(), S.settings.perDay).map(t =>
+    t === 'boss' && known < 4 ? (hasWords ? 'hunt' : 'letters') : (t === 'hunt' || t === 'pods') && !hasWords ? 'letters' : t);
+}
+const allDoneToday = () => todaysMissions().every((_, n) => S.day.done.includes(n));
+function renderPods() {
+  $('#pods').replaceChildren(...todaysMissions().map((type, n) => {
+    const done = S.day.done.includes(n);
+    return button('pod ' + (done ? 'done' : 'glow'), done ? '⭐' : MISSION[type].icon,
+      () => done ? say(allDoneToday() ? 'All missions done! Your crops grow while you sleep.' : 'You did that one. Great job!') : startMission(type, n));
+  }));
+  $('#rocket').classList.toggle('glow', allDoneToday() && !S.day.coop);
+}
+$('#rocket').onclick = () => { say('Mission Control! Get a grown-up.'); gate(() => startCoop()); };
+$('#shopBtn').onclick = openShop;
+
+// ---------- missions ----------
+const WORD_FONTS = ['Andika, Verdana, sans-serif', 'Verdana, sans-serif', 'Georgia, serif', 'Futura, "Avenir Next", sans-serif', '"Avenir Next", Avenir, sans-serif', '"Chalkboard SE", "Comic Sans MS", sans-serif'];
+// Mixed fonts so he knows a/ɑ and g/ɡ in any print. Checked by eye: Verdana, Georgia and Andika keep capital I and lowercase l
+// apart; Futura doesn't, so it never shows a letter question that has I or l in it.
+const LETTER_FONTS = ['Andika, Verdana, sans-serif', 'Verdana, sans-serif', 'Georgia, serif', 'Futura, sans-serif'];
+const fontPick = fonts => Math.random() < 0.5 ? fonts[0] : pick(fonts); // Andika half the time: it matches his class's print (ɑ, ɡ, barred I)
+function fontFor(keys) {
+  if (!keys.some(L.isLetterKey)) return fontPick(WORD_FONTS);
+  return fontPick(keys.some(k => 'Il'.includes(L.keyText(k))) ? LETTER_FONTS.slice(0, 3) : LETTER_FONTS);
+}
+const PRAISE = ['Yes!', 'You got it!', 'Great looking!', 'Super reading!', 'Awesome!', 'You looked carefully!', 'Nice one!'];
+let M = null, qGen = 0;
+
+async function startMission(type, n) {
+  const words = wordKeys();
+  let queue;
+  if (type === 'boss') queue = L.buildQueue([], L.shuffle([...words, ...L.LETTER_KEYS].filter(k => L.isKnown(peek(k)))), L.CAP + 2);
+  else {
+    const isL = type === 'letters' || type === 'twins';
+    const { focus, known } = L.pickFocus(isL ? L.LETTER_KEYS : listKeys(curList()), isL ? L.LETTER_KEYS : words, S.items);
+    queue = L.buildQueue(focus, known, L.CAP + 2);
+  }
+  M = { type, n, m: L.createMission(queue), ease: false, prompt: '' };
+  show('mission'); renderBag();
+  $('#prompt').className = 'prompt'; $('#prompt').textContent = ''; $('#opts').replaceChildren();
+  $('#glitch').hidden = type !== 'boss'; $('#glitch').style.transform = '';
+  const g = ++qGen;
+  await say(MISSION[type].intro);
+  if (g === qGen) nextQ();
+}
+
+function promptText(target) {
+  const s = speak(target);
+  if (!L.isLetterKey(target)) return M.type === 'hunt' ? `Find the word: ${s}.` : `Find ${s}!`;
+  if (M.type !== 'twins') return `Find ${s}!`;
+  return L.isUpper(L.keyText(target)) ? `This is little ${s}. Find big ${s}!` : `This is big ${s}. Find little ${s}!`;
+}
+const lock = () => { $('#opts').classList.add('locked'); $('#opts').querySelectorAll('.opt').forEach(b => { b.disabled = true; }); };
+function unlock() {
+  $('#opts').classList.remove('locked');
+  $('#opts').querySelectorAll('.opt').forEach(b => { b.disabled = b.classList.contains('faded'); });
+  M.openedAt = performance.now();
+}
+
+async function nextQ() {
+  const g = ++qGen, m = M.m, target = L.nextTarget(m);
+  if (!target) return finishMission();
+  const it = item(target), isL = L.isLetterKey(target), twin = M.type === 'twins';
+  const layout = M.type === 'hunt' ? 'grid' : isL ? 'blocks' : 'pods';
+  let n = L.choiceCount(it, M.ease);
+  if (layout === 'grid') n = Math.min(6, n + 2); // the hunt looks like a page of words
+  const hard = L.isKnown(it);
+  const raw = isL ? L.letterOptions(target, n, hard, Math.random, twin)
+    : L.wordOptions(L.keyText(target), wordKeys().map(L.keyText), n, hard).map(w => 'W:' + w);
+  const opts = L.placeTarget(raw, target, m.lastPos);
+  const t = L.keyText(target), twinKey = twin ? 'L:' + (L.isUpper(t) ? t.toLowerCase() : t.toUpperCase()) : null;
+  const font = fontFor(twinKey ? [...opts, twinKey] : opts);
+  const box = $('#opts'), card = $('#prompt');
+  box.className = 'opts locked ' + layout;
+  box.replaceChildren(...opts.map(k => {
+    const b = button('opt', L.keyText(k), () => tapOpt(b, k, target, g));
+    b.dataset.k = k; b.disabled = true; b.style.fontFamily = font;
+    return b;
+  }));
+  card.className = 'prompt'; card.textContent = ''; card.style.fontFamily = font;
+  if (L.isNew(it) && M.type !== 'boss') { // teach it before asking it
+    card.className = 'prompt teach'; card.textContent = t; box.classList.add('hidden');
+    await say(isL ? `This is ${caseWord(target)} ${speak(target)}. Say ${speak(target)}!` : `This word is ${speak(target)}. Say ${speak(target)}!`);
+    await sleep(1600); // time for him to say it
+    if (g !== qGen) return;
+    box.classList.remove('hidden'); card.className = 'prompt'; card.textContent = '';
+  }
+  if (twin) { card.className = 'prompt twin'; card.textContent = L.keyText(twinKey); }
+  M.prompt = promptText(target);
+  await say(M.prompt);
+  if (g === qGen) unlock(); // buttons stay locked until the prompt is finished
+}
+
+async function tapOpt(b, k, target, g) {
+  if (g !== qGen || b.disabled) return;
+  const quick = performance.now() - M.openedAt < 700;
+  const r = L.answer(M.m, k === target);
+  lock();
+  if (r === 'gold' || r === 'silver') {
+    track(target, it => L.recordSolo(it, r, TODAY()));
+    b.classList.add('right');
+    if (M.type === 'boss') wobbleGlitch(true);
+    let record = 0;
+    if (r === 'gold') {
+      sfx.gold(); flySeed(b); logToday('g');
+      if (++S.streak > S.best.streak) { S.best.streak = S.streak; if (S.streak >= 10 && S.streak % 5 === 0) record = S.streak; }
+    } else sfx.silver();
+    save();
+    if (record) { happy(); await say(`New record! ${record} in a row!`); }
+    else await say(r === 'gold' ? pick(PRAISE) : `Yes! That's ${speak(target)}. Say ${speak(target)}!`);
+    if (r === 'silver') await sleep(1200);
+    if (g !== qGen) return;
+    M.ease = r === 'silver'; // right after a miss, the next one is quietly easier
+    return nextQ();
+  }
+  b.classList.add('faded'); sfx.soft();
+  if (M.type === 'boss') wobbleGlitch(false);
+  if (r === 'miss') { track(target, it => L.recordSolo(it, 'miss', TODAY())); S.streak = 0; save(); }
+  else $('#opts').querySelector(`[data-k="${CSS.escape(target)}"]`)?.classList.add('hint'); // 2nd miss: show which one
+  await say((quick ? 'Eagle eyes! Look carefully. ' : 'Hmm, look again. ') + M.prompt);
+  if (g === qGen) unlock();
+}
+
+function renderBag() {
+  const m = M?.m;
+  if (m) $('#bag').replaceChildren(...Array.from({ length: m.nGold }, (_, i) => el('i', i < m.golds ? 'on' : '')));
+}
+function flySeed(from) {
+  const slot = $('#bag i:not(.on)');
+  if (!slot) return renderBag();
+  const a = from.getBoundingClientRect(), b = slot.getBoundingClientRect(), s = el('div', 'fly', '🌱');
+  s.style.left = a.left + a.width / 2 + 'px'; s.style.top = a.top + a.height / 2 + 'px';
+  document.body.append(s);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    s.style.transform = `translate(${b.left + b.width / 2 - a.left - a.width / 2}px, ${b.top + b.height / 2 - a.top - a.height / 2}px) scale(.6)`;
+  }));
+  setTimeout(() => { s.remove(); renderBag(); }, 600);
+}
+function wobbleGlitch(hit) {
+  const gl = $('#glitch'), m = M.m, s = gl.firstElementChild;
+  if (hit) gl.style.transform = `scale(${Math.max(0.3, 1 - 0.7 * (m.golds + m.silvers) / m.nGold)})`;
+  s.classList.remove('wob'); void s.offsetWidth; s.classList.add('wob');
+}
+
+async function finishMission() {
+  const { m, type, n } = M, full = m.golds >= m.nGold;
+  renderBag();
+  S.seeds += m.golds;
+  if (full) S.goldSeeds++;
+  if (type === 'boss') S.coins += 5;
+  if (!S.day.done.includes(n)) S.day.done.push(n);
+  logToday('m'); save();
+  M = null; ++qGen;
+  sfx.win(); happy();
+  const box = openModal('', true);
+  box.append(el('div', 'sum', '🌱'.repeat(m.golds) || '⭐'));
+  if (full) box.append(el('div', 'sum', '✨🌟✨'));
+  if (type === 'boss') box.append(el('div', 'sum', '☁️💨 +5 🪙'));
+  box.append(button('play small', '🏡', () => { closeModal(); celebrateBots().then(goFarm); }));
+  const end = allDoneToday() ? (S.day.coop ? ' All missions done for today!' : ' All missions done! Now get a grown-up for Mission Control.') : '';
+  await say(`Mission complete! ${m.golds ? `You got ${m.golds} seeds` : 'Great work'}${full ? ' and a golden seed!' : '!'}` +
+    (type === 'boss' ? ' Glitch ran away and dropped five coins!' : '') + end);
+}
+$('#quit').onclick = () => { // leaving early keeps every seed he earned
+  if (M) { S.seeds += M.m.golds; save(); }
+  M = null; ++qGen; synth?.cancel(); goFarm(); say('Okay! Back to the farm.');
+};
+$('#replay').onclick = () => { if (M?.prompt) say(M.prompt); };
+
+// ---------- Mission Control: he reads out loud, a grown-up taps ----------
+let C = null;
+function coopPick(keys) {
+  const p = k => peek(k);
+  const learning = L.shuffle(keys.filter(k => p(k).last && !L.isMastered(p(k))));
+  const mastered = L.shuffle(keys.filter(k => L.isMastered(p(k))));
+  const fresh = L.shuffle(keys.filter(k => !p(k).last));
+  return [...learning.slice(0, 6), ...mastered.slice(0, 2), ...fresh].slice(0, 8);
+}
+async function startCoop(keys = null, after = null) {
+  closeModal();
+  C = { seq: keys ? L.reshuffle(keys) : [...coopPick(L.LETTER_KEYS), ...coopPick(wordKeys())], i: 0, fuel: 0, helped: new Set(), after, placement: !!keys };
+  show('coop'); $('#ship').className = 'ship'; $('#fuel').style.height = '0%'; $('#card').textContent = '🚀'; $('#answer').textContent = '';
+  await say(keys ? 'Placement check! Read each one to your grown-up.' : 'Mission Control! Read each one to your grown-up. Every one you read fuels the rocket!');
+  coopShow();
+}
+function coopShow() {
+  if (!C) return;
+  if (C.i >= C.seq.length) return coopFinish();
+  const k = C.seq[C.i], prev = C.seq[C.i - 1], card = $('#card');
+  card.textContent = L.keyText(k); card.style.fontFamily = fontFor([k]);
+  card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+  $('#answer').textContent = L.isLetterKey(k) ? `Letter ${L.keyText(k)}: "${speak(k)}"` : `Word: ${L.keyText(k)}`;
+  const bar = $('.bar3'); bar.classList.remove('go'); void bar.offsetWidth; bar.classList.add('go');
+  if (prev && L.isLetterKey(prev) && !L.isLetterKey(k)) say('Word time!');
+}
+document.querySelectorAll('.pstrip [data-r]').forEach(b => b.onclick = async () => {
+  if (!C || C.busy || C.i >= C.seq.length) return;
+  C.busy = true;
+  const k = C.seq[C.i];
+  let r = b.dataset.r;
+  if (r === 'fast' && C.helped.has(k)) r = 'slow'; // right after the robot modeled it isn't instant recall
+  track(k, it => {
+    L.recordCoop(it, r, TODAY());
+    if (C.placement && r === 'fast') it.box = Math.max(it.box, 3); // he already knows it: skip re-teaching
+  });
+  if (r === 'again') {
+    sfx.soft();
+    if (!C.helped.has(k)) { C.helped.add(k); C.seq.push(k); } // one more try at the end
+    await say(L.isLetterKey(k) ? `This is ${speak(k)}. Say ${speak(k)}!` : `This word is ${speak(k)}. Say ${speak(k)}!`);
+    await sleep(800);
+  } else {
+    C.fuel++; sfx.gold();
+    $('#fuel').style.height = Math.min(100, 100 * C.fuel / C.seq.length) + '%';
+  }
+  save();
+  if (!C) return;
+  C.i++; C.busy = false; coopShow();
+});
+async function coopFinish() {
+  const after = C.after;
+  C = null;
+  if (!after) { S.day.coop++; logToday('c'); S.coins += 3; }
+  save();
+  $('#ship').classList.add('launch'); sfx.win(); happy();
+  await say(after ? 'All done! Great reading!' : 'Three, two, one, blast off! Great reading! You earned three coins.');
+  await celebrateBots();
+  after ? after() : goFarm();
+}
+$('#coopQuit').onclick = () => { const after = C?.after; C = null; synth?.cancel(); save(); after ? after() : goFarm(); };
+
+// ---------- practice page: the teacher's shuffled-page format ----------
+function pageTest(keys, words) {
+  show('page');
+  $('#pageTitle').textContent = words
+    ? `Practice test, List ${S.cur + 1}: he reads across each row. Tap any word he misses or takes more than 3 seconds on.`
+    : 'Letter page: he names each letter across the rows. Tap any he misses or takes more than 3 seconds on.';
+  const grid = $('#pageGrid');
+  grid.className = 'page ' + (words ? 'words' : 'letters');
+  grid.style.fontFamily = fontFor(words ? [] : keys);
+  grid.replaceChildren(...L.reshuffle(keys).map(k => { const b = button('pw', L.keyText(k), () => b.classList.toggle('seed')); b.dataset.k = k; return b; }));
+  $('#pageDone').onclick = () => {
+    const missed = new Set([...grid.querySelectorAll('.seed')].map(b => b.dataset.k));
+    for (const k of keys) track(k, it => L.recordCoop(it, missed.has(k) ? 'again' : 'fast', TODAY()));
+    let msg = missed.size ? `Seeds to grow: ${[...missed].map(L.keyText).join(', ')}` : 'Clean run!';
+    if (words && !missed.size && keys.every(k => L.isMastered(peek(k)))) { curList().ready = TODAY(); msg += ' 🏆 READY TO TEST! Send the teacher a note.'; }
+    save(); openParent(msg);
+  };
+  $('#pageCancel').onclick = () => openParent();
+}
+
+// ---------- grown-up gate ----------
+function gate(then) {
+  const a = 6 + Math.floor(Math.random() * 4), b = 6 + Math.floor(Math.random() * 4);
+  const box = openModal(`Grown-ups: what is ${a} × ${b}?`);
+  const input = el('input', 'gate-in');
+  input.inputMode = 'numeric'; input.autocomplete = 'off';
+  const go = () => { const ok = +input.value === a * b; closeModal(); if (ok) then(); };
+  input.onkeydown = e => { if (e.key === 'Enter') go(); };
+  box.append(input, button('pbtn', 'Enter', go));
+  setTimeout(() => input.focus(), 50);
+}
+let holdT;
+const gear = $('#gear');
+gear.onpointerdown = () => { gear.classList.add('holding'); holdT = setTimeout(() => { gear.classList.remove('holding'); gate(() => openParent()); }, FAST ? 300 : 3000); };
+gear.onpointerup = gear.onpointerleave = gear.onpointercancel = () => { clearTimeout(holdT); gear.classList.remove('holding'); };
+gear.oncontextmenu = e => e.preventDefault();
+
+// ---------- grown-up area ----------
+function openParent(msg = '') { closeModal(); show('parent'); renderParent(msg); }
+$('#parentBack').onclick = goFarm;
+
+function renderParent(msg = '') {
+  const chip = k => `<span class="chip ${status(peek(k))}">${esc(L.keyText(k))}</span>`;
+  const vs = (synth?.getVoices() || []).filter(v => /^en/i.test(v.lang));
+  const list = curList();
+  $('#parentBody').innerHTML = `
+  ${msg ? `<div class="banner">${esc(msg)}</div>` : ''}
+  <section><h2>Today</h2>
+    <p>Missions ${S.day.done.length}/${todaysMissions().length} · Mission Control ${S.day.coop ? '✓ done' : 'not yet'} · Days played ${Object.keys(S.log).length} · Best gold streak ${S.best.streak}</p>
+    <div class="btns"><button data-act="coop">🚀 Start Mission Control</button><button data-act="report">📤 Share progress report</button></div>
+  </section>
+  <section><h2>Heart Words, List ${S.cur + 1} ${list.passed ? `<span class="badge">🏅 Passed ${esc(list.passed)}</span>` : list.ready ? `<span class="badge">🏆 READY TO TEST: send the teacher a note (${esc(list.ready)})</span>` : ''}</h2>
+    <div>${listKeys(list).map(chip).join('')}</div>
+    <p class="hint"><span class="chip">new</span><span class="chip learning">learning</span><span class="chip known">known</span><span class="chip mastered">mastered 🤖</span> Mastered = right on 3 different days, including an instant read-aloud to you.</p>
+    <div class="btns"><button data-act="pageWords">📄 Practice test (shuffled page)</button><button data-act="placeWords">🧭 Word placement check</button><button data-act="testWords">🔊 Hear each word</button></div>
+  </section>
+  <section><h2>Letters</h2>
+    <div class="letters">${L.LETTER_KEYS.filter((_, i) => i % 2 === 0).map(chip).join('')}</div>
+    <div class="letters">${L.LETTER_KEYS.filter((_, i) => i % 2 === 1).map(chip).join('')}</div>
+    <div class="btns"><button data-act="pageLetters">📄 Letter page</button><button data-act="placeLetters">🧭 Letter placement check</button></div>
+  </section>
+  <section><h2>Word lists</h2>
+    <p class="hint">Type the teacher's words separated by commas, then save. If the voice says a word wrong, add what it should sound like, e.g. <code>read=reed</code>. Never drill the list in order. The game shuffles it every time.</p>
+    ${S.lists.map((l, i) => `<div class="list">
+      <label><input type="radio" name="cur" value="${i}" ${i === S.cur ? 'checked' : ''}> List ${i + 1}${i === S.cur ? ' (current)' : ''}</label>
+      <textarea data-list="${i}" rows="2">${esc(l.words.map(w => l.say?.[w] ? `${w}=${l.say[w]}` : w).join(', '))}</textarea>
+      <div class="btns"><button data-act="saveList" data-i="${i}">Save list ${i + 1}</button>${!l.words.length ? '' : l.passed ? `<span class="badge">🏅 Passed ${esc(l.passed)}</span>` : `<button data-act="passed" data-i="${i}">🏅 Teacher says he passed</button>`}</div></div>`).join('')}
+    <div class="btns"><button data-act="addList">➕ Add the next list</button></div>
+  </section>
+  <section><h2>Settings</h2>
+    <label>Child's name (the robot says it)<input id="setChild" value="${esc(S.settings.child)}" autocomplete="off"></label>
+    <label>Voice<select id="setVoice"><option value="">Automatic</option>${vs.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === S.settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('')}</select></label>
+    <label>Talking speed<input id="setRate" type="range" min="0.6" max="1.1" step="0.05" value="${S.settings.rate}"></label>
+    <label>Missions per day<select id="setPerDay">${[2, 3, 4, 5].map(n => `<option ${n === S.settings.perDay ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    <label>Robot color<br>${COLORS.map(c => `<button class="swatch" data-act="color" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('')}</label>
+    <div class="btns"><button data-act="saveSettings">Save settings</button><button data-act="testVoice">🔊 Test voice</button><button data-act="testLetters">🔤 Hear all letter names</button></div>
+  </section>
+  <section><h2>Backup</h2>
+    <p class="hint">Progress lives only on this iPad. Save a backup every week or two (to Files or iCloud Drive).</p>
+    <div class="btns"><button data-act="backup">💾 Save backup</button><label class="file">📂 Restore backup<input type="file" id="restore" accept="application/json,.json" hidden></label><button data-act="reset" class="danger">Reset everything</button></div>
+  </section>
+  <section><h2>Mission Control tips</h2><ul>
+    <li><b>5 minutes a day.</b> Sit beside him and let him answer first. The yellow bar counts 3 seconds.</li>
+    <li><b>✓ Instant</b> = right within about 3 seconds. <b>⏳ Slow</b> = right, but slow or sounded out. <b>↺ Again later</b> = wrong or no answer. The robot models it and it comes back at the end.</li>
+    <li>Speech differences ("wabbit" for rabbit) are not mistakes. DIBELS doesn't count them either.</li>
+    <li>End on a win. If he's getting upset, stop. Tomorrow is another day.</li>
+    <li>Run both <b>placement checks</b> once at the start so the game knows what he already knows.</li>
+    <li>When every word shows 🤖 and the practice test is clean, the game says <b>READY TO TEST</b>. Send the teacher the note. When she says he passed, tap "🏅 Teacher says he passed" under Word lists. He gets a medal on the farm, and you add the next list.</li>
+    <li><b>iPad setup:</b> Safari → Share → Add to Home Screen. Settings → Accessibility → Spoken Content → Voices → English → download an "Enhanced" voice, then pick it above. Settings → Accessibility → Guided Access locks him into the game (triple-click the top button to start).</li>
+  </ul></section>`;
+}
+
+function report() {
+  const lines = [`${S.settings.child || 'Robot Farm'} progress report, ${TODAY()}`];
+  S.lists.slice(0, S.cur + 1).forEach((l, i) => {
+    const ks = listKeys(l), by = s => ks.filter(k => status(peek(k)) === s).map(L.keyText);
+    lines.push(`Heart Words List ${i + 1}${l.passed ? ` (passed ${l.passed})` : l.ready ? ` (READY TO TEST since ${l.ready})` : ''}: ${by('mastered').length} of ${ks.length} words mastered.`);
+    if (by('mastered').length) lines.push(`  Mastered: ${by('mastered').join(', ')}`);
+    const working = [...by('known'), ...by('learning')];
+    if (working.length) lines.push(`  Working on: ${working.join(', ')}`);
+  });
+  const lk = L.LETTER_KEYS;
+  lines.push(`Letters: ${lk.filter(k => L.isKnown(peek(k))).length} of 52 known, ${lk.filter(k => L.isMastered(peek(k))).length} mastered.`);
+  const tricky = lk.filter(k => peek(k).miss + peek(k).again >= 2 && !L.isMastered(peek(k))).map(L.keyText);
+  if (tricky.length) lines.push(`  Tricky letters: ${tricky.join(' ')}`);
+  const week = Object.entries(S.log).filter(([d]) => L.daysBetween(d, TODAY()) < 7);
+  const n = (x, w) => `${x} ${w}${x === 1 ? '' : 's'}`;
+  lines.push(`Last 7 days: ${n(week.length, 'day')} played, ${n(week.reduce((a, [, v]) => a + v.m, 0), 'mission')}, ${n(week.reduce((a, [, v]) => a + v.c, 0), 'Mission Control session')}.`);
+  return lines.join('\n');
+}
+async function shareReport() {
+  const text = report();
+  if (navigator.share) { try { return await navigator.share({ text }); } catch (e) { if (e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(text); renderParent('Report copied. Paste it into a message or note.'); } catch { prompt('Copy this report:', text); }
+}
+async function saveBackup() {
+  const name = `robot-farm-backup-${TODAY()}.json`, blob = new Blob([JSON.stringify(S)], { type: 'application/json' });
+  const file = new File([blob], name, { type: 'application/json' });
+  if (navigator.canShare?.({ files: [file] })) { try { return await navigator.share({ files: [file] }); } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = el('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+function restoreBackup(file) {
+  file?.text().then(t => {
+    const d = JSON.parse(t);
+    if (d?.v !== 1 || !d.items || !d.farm) throw new Error('not a backup');
+    if (!confirm('Replace the progress on this iPad with this backup?')) return;
+    S = d; save(); location.reload();
+  }).catch(() => alert('That file is not a Robot Farm backup.'));
+}
+
+const ACT = {
+  coop: () => startCoop(),
+  report: shareReport,
+  pageWords: () => pageTest(listKeys(curList()), true),
+  pageLetters: () => pageTest(L.LETTER_KEYS, false),
+  placeWords: () => startCoop(listKeys(curList()), () => openParent('Word placement done. The game now knows where to start.')),
+  placeLetters: () => startCoop(L.LETTER_KEYS, () => openParent('Letter placement done. The game now knows where to start.')),
+  saveList: b => {
+    const i = +b.dataset.i, { words, say: sayAs } = L.parseList($(`textarea[data-list="${i}"]`).value);
+    if (!words.length) return alert('Type at least one word.');
+    Object.assign(S.lists[i], { words, say: sayAs });
+    save(); renderParent(`List ${i + 1} saved: ${words.length} words.`);
+  },
+  passed: b => {
+    const i = +b.dataset.i;
+    if (!confirm(`Did the teacher say he passed List ${i + 1}?`)) return;
+    S.lists[i].passed = TODAY(); S.party = true; save();
+    renderParent(i < 5 ? `🏅 Medal saved! He'll see it on the farm. When List ${i + 2} comes home, tap "Add the next list", type it, save, and mark it current.` : '🏅 That was List 6. Time for the real medal!');
+  },
+  testWords: async () => { // hear exactly how the game will say each word
+    for (const w of curList().words) { if (document.body.dataset.screen !== 'parent') return; await say(`Find the word: ${sayWord(w)}.`); await sleep(250); }
+  },
+  addList: () => { S.lists.push({ words: [], say: {} }); save(); renderParent('Added a list. Type its words, save it, then mark it current.'); },
+  color: b => { S.settings.color = b.dataset.c; save(); applyLook(); },
+  saveSettings: () => {
+    S.settings.child = $('#setChild').value.trim().slice(0, 30);
+    S.settings.voice = $('#setVoice').value;
+    S.settings.rate = +$('#setRate').value;
+    S.settings.perDay = +$('#setPerDay').value;
+    save(); pickVoice(); renderParent('Settings saved.');
+  },
+  testVoice: () => say(`Hi ${S.settings.child || 'friend'}! This is how I sound. Find the word: like.`),
+  testLetters: () => say(L.ABC.map(L.letterName).join(', ')),
+  backup: saveBackup,
+  reset: () => { if (confirm('Erase ALL progress on this iPad?') && confirm('Really erase everything? This cannot be undone.')) { localStorage.removeItem(KEY); location.reload(); } },
+};
+$('#parentBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) ACT[b.dataset.act](b); };
+$('#parentBody').onchange = e => {
+  if (e.target.name === 'cur') {
+    if (!S.lists[+e.target.value].words.length) { renderParent('Type and save that list first.'); return; }
+    S.cur = +e.target.value; save(); renderParent(`List ${S.cur + 1} is now the current list. Earlier lists stay in review.`);
+  }
+  if (e.target.id === 'restore') restoreBackup(e.target.files[0]);
+};
+
+// ---------- boot ----------
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return synth?.cancel();
+  rollDay();
+  if (document.body.dataset.screen === 'farm') renderFarm();
+});
+applyLook(); save();
+if ('serviceWorker' in navigator && !/^(localhost|127\.|\[::1\])/.test(location.hostname)) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
