@@ -209,15 +209,24 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
   <div id="placing" class="placing" hidden></div>
 </main>
 
+<main id="yard" class="screen">
+  <header class="yard-top"><h1>Corn to popcorn</h1><div id="yardCounts" class="yard-counts"></div></header>
+  <div class="yard-layout"><aside><h2>Your equipment jobs</h2><div id="yardJobs"></div></aside>
+    <section class="yard-adventure"><h2 id="yardTitle"></h2><div id="yardScene" class="equipment-scene"></div><button id="yardStart" class="yard-start"></button></section>
+  </div>
+  <nav class="yard-nav"><button id="yardFarm" class="round" aria-label="Visit the farm"></button><button id="yardDrive" class="round" aria-label="Drive a tractor and trailer"></button><button id="yardCoop" class="round" aria-label="Mission Control"></button></nav>
+</main>
+
 <main id="mission" class="screen">
-  <div class="mtop"><button id="quit" class="round" aria-label="Back to the farm">🏡</button><div id="bag" class="bag"></div><button id="replay" class="round" aria-label="Hear it again">🔊</button></div>
+  <div class="mtop"><button id="quit" class="round" aria-label="Back to equipment jobs">🏡</button><div id="bag" class="bag"></div><button id="replay" class="round" aria-label="Hear it again">🔊</button></div>
   <div id="glitch" class="glitch" hidden><span>☁️</span></div>
+  <section class="mission-equipment"><h2 id="jobTitle"></h2><div id="jobScene" class="equipment-scene"></div></section>
   <div id="prompt" class="prompt"></div>
   <div id="opts" class="opts"></div>
 </main>
 
 <main id="coop" class="screen">
-  <div class="mtop"><button id="coopQuit" class="round" aria-label="Back to the farm">🏡</button><span class="ctitle">Mission Control</span><span style="width:72px"></span></div>
+  <div class="mtop"><button id="coopQuit" class="round" aria-label="Back to equipment jobs">🏡</button><span class="ctitle">Mission Control</span><span style="width:72px"></span></div>
   <div id="card" class="bigcard"></div>
   <div class="fuel"><div id="fuel"></div></div>
   <div id="ship" class="ship">🚀</div>
@@ -251,6 +260,7 @@ import { art, robotArt } from './art.js';
 import { rankVoices, voiceQuality, audioPreferences } from './presentation.js';
 import { sounds } from './sounds.js';
 import { createDriving } from './driving.js';
+import { JOBS, jobFor, equipmentProgress, jobIcon, createEquipment } from './equipment.js';
 
 const $ = s => document.querySelector(s);
 const el = (tag, cls = '', text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -457,13 +467,12 @@ const THING = Object.fromEntries([...SHOP, { id: 'ship', e: '🛸', name: 'space
 let greeted = false;
 
 function goFarm() {
-  rollDay(); closeModal(); show('farm'); renderFarm();
+  rollDay(); closeModal(); renderFarm(); renderYard(); show(S.placing ? 'farm' : 'yard');
   if (S.party) return medalParty();
   if (S.placing) return say(`Tap an empty spot for your ${THING[S.placing].name}!`);
   if (greeted) return;
   greeted = true;
-  const ready = S.farm.some(t => t.crop && L.cropStage(t.crop, TODAY()) === 'ready');
-  say(`Hi ${S.settings.child || 'friend'}! ` + 'Tap the tractor and trailer to pick a road! ' + (ready ? 'Your crops are ready too.' : 'Reading missions are here when you are ready.'));
+  say(`Hi ${S.settings.child || 'friend'}! Let’s get our farm machines ready. Tap the big play button to start a job.`);
 }
 
 async function medalParty() {
@@ -605,11 +614,11 @@ function place(i) {
 
 // ---------- mission board ----------
 const MISSION = {
-  hunt: { icon: '🔎', intro: 'Word Hunt! Find the heart word I say.' },
-  pods: { icon: '🫧', intro: 'Rescue Pods! Find the pod with my heart word.' },
-  letters: { icon: '⛏️', intro: 'Letter Mine! Find the letter I say.' },
-  twins: { icon: '🔠', intro: 'Twin Match! Every big letter has a little twin.' },
-  boss: { icon: '☁️', intro: 'Oh no! Glitch scrambled the farm! Read carefully to fix it.' },
+  hunt: { icon: '🔎', intro: 'Find the Heart Word I say.' },
+  pods: { icon: '🫧', intro: 'Find the Heart Word I say.' },
+  letters: { icon: '⛏️', intro: 'Find the letter I say.' },
+  twins: { icon: '🔠', intro: 'Every big letter has a little twin.' },
+  boss: { icon: '☁️', intro: 'Glitch mixed up our machine! Read carefully to fix it.' },
 };
 function todaysMissions() {
   const words = wordKeys(), hasWords = words.length >= 2;
@@ -628,6 +637,33 @@ function renderPods() {
 }
 $('#rocket').onclick = () => { say('Mission Control! Get a grown-up.'); gate(() => startCoop()); };
 $('#shopBtn').onclick = openShop;
+
+// Equipment jobs wrap the existing daily mission slots; they add no learning state.
+function dailyJob(n) { return jobFor(dayIndex(), S.settings.perDay, n); }
+function renderYard() {
+  const missions = todaysMissions(), next = missions.findIndex((_, n) => !S.day.done.includes(n));
+  const selected = next < 0 ? missions.length - 1 : next, job = dailyJob(selected);
+  $('#yardJobs').replaceChildren(...missions.map((type, n) => {
+    const done = S.day.done.includes(n), j = dailyJob(n);
+    const b = button('yard-job' + (done ? ' done' : '') + (n === next ? ' selected' : ''), '', () =>
+      done ? say('We did that job. Great work!') : startMission(type, n));
+    b.append(jobIcon(j), el('span', '', JOBS[j].name));
+    if (done) b.append(art('star'));
+    b.setAttribute('aria-label', JOBS[j].name + (done ? ', complete' : ''));
+    return b;
+  }));
+  $('#yardTitle').textContent = next < 0 ? 'Our machines are ready!' : JOBS[job].name;
+  createEquipment($('#yardScene'), job, next < 0 ? 1 : 0);
+  $('#yardStart').replaceChildren(art(next < 0 ? 'tractor' : 'play'), el('span', '', next < 0 ? 'Pick a road' : 'Start our farm job'));
+  $('#yardStart').onclick = () => next < 0 ? openRoads() : startMission(missions[next], next);
+  $('#yardCounts').replaceChildren(...[['seed', S.seeds], ['coin', S.coins]].map(([name, value]) => {
+    const count = el('span'); count.append(art(name), el('b', '', value)); return count;
+  }));
+}
+function openRoads() { closeModal(); show('drive'); driver.openRoads(); }
+$('#yardFarm').onclick = () => { show('farm'); renderFarm(); say('Here is your farm. Tap a crop to harvest, or the tractor to drive.'); };
+$('#yardDrive').onclick = openRoads;
+$('#yardCoop').onclick = () => $('#rocket').click();
 
 // ---------- missions ----------
 const WORD_FONTS = ['Andika, Verdana, sans-serif', 'Verdana, sans-serif', 'Georgia, serif', 'Futura, "Avenir Next", sans-serif', '"Avenir Next", Avenir, sans-serif', '"Chalkboard SE", "Comic Sans MS", sans-serif'];
@@ -651,12 +687,14 @@ async function startMission(type, n) {
     const { focus, known } = L.pickFocus(isL ? L.LETTER_KEYS : listKeys(curList()), isL ? L.LETTER_KEYS : words, S.items);
     queue = L.buildQueue(focus, known, L.CAP + 2);
   }
-  M = { type, n, m: L.createMission(queue), ease: false, prompt: '' };
+  M = { type, n, job: dailyJob(n), m: L.createMission(queue), ease: false, prompt: '' };
+  $('#jobTitle').textContent = JOBS[M.job].name;
+  M.equipment = createEquipment($('#jobScene'), M.job);
   show('mission'); $('#mission').dataset.type = type; renderBag();
   $('#prompt').className = 'prompt'; $('#prompt').textContent = ''; $('#opts').replaceChildren();
   $('#glitch').hidden = type !== 'boss'; $('#glitch').style.transform = '';
   const g = ++qGen;
-  await say(MISSION[type].intro);
+  await say(JOBS[M.job].intro + ' ' + MISSION[type].intro);
   if (g === qGen) nextQ();
 }
 
@@ -687,7 +725,7 @@ async function nextQ() {
   const t = L.keyText(target), twinKey = twin ? 'L:' + (L.isUpper(t) ? t.toLowerCase() : t.toUpperCase()) : null;
   const font = fontFor(twinKey ? [...opts, twinKey] : opts);
   const box = $('#opts'), card = $('#prompt');
-  box.className = 'opts locked ' + layout;
+  box.className = 'opts locked ' + layout; box.dataset.count = opts.length;
   box.replaceChildren(...opts.map(k => {
     const b = button('opt', L.keyText(k), () => tapOpt(b, k, target, g));
     b.dataset.k = k; b.disabled = true; b.style.fontFamily = font;
@@ -723,6 +761,9 @@ async function tapOpt(b, k, target, g) {
       if (++S.streak > S.best.streak) { S.best.streak = S.streak; if (S.streak >= 10 && S.streak % 5 === 0) record = S.streak; }
     } else sfx.silver();
     save();
+    M.equipment.paint(equipmentProgress(M.m));
+    await sleep(400); // Finish the equipment action before the next spoken question.
+    if (g !== qGen) return;
     if (record) { happy(); await say(`New record! ${record} in a row!`); }
     else await say(r === 'gold' ? pick(PRAISE) : `Yes! That's ${speak(target)}. Say ${speak(target)}!`);
     if (r === 'silver') await sleep(1200);
@@ -765,7 +806,7 @@ function wobbleGlitch(hit) {
 }
 
 async function finishMission() {
-  const { m, type, n } = M, full = m.golds >= m.nGold;
+  const { m, type, n, job } = M, full = m.golds >= m.nGold;
   renderBag();
   S.seeds += m.golds;
   if (full) S.goldSeeds++;
@@ -775,7 +816,8 @@ async function finishMission() {
   M = null; ++qGen;
   sfx.win(); happy();
   const box = openModal('', true); sound?.scene('reward');
-  const hero = el('div', 'reward-hero'); hero.append(art('botHappy'));
+  const hero = el('div', 'equipment-reward'); createEquipment(hero, job, 1);
+  box.append(el('h2', 'job-complete-title', 'We did our farm job!'));
   const count = el('div', 'reward-count'); if (m.golds) count.append(art('seed'), el('b', '', m.golds)); else count.append(art('star'));
   if (full) count.append(el('span', '', '+'), art('goldseed'), el('b', '', 1));
   box.append(hero, count);
@@ -788,7 +830,7 @@ async function finishMission() {
 }
 $('#quit').onclick = () => { // leaving early keeps every seed he earned
   if (M) { S.seeds += M.m.golds; save(); }
-  M = null; ++qGen; synth?.cancel(); goFarm(); say('Okay! Back to the farm.');
+  M = null; ++qGen; synth?.cancel(); goFarm(); say('Okay! Back to our jobs.');
 };
 $('#replay').onclick = async () => {
   if (!M?.prompt) return;
@@ -1088,9 +1130,11 @@ for (const [id, name] of Object.entries({ coins: 'coin', seeds: 'seed', gseeds: 
 }
 putArt($('#trophy'), 'star');
 driver = createDriving($('#drive'), { speak: say, effect: name => sfx[name](), onExit: goFarm });
-const driveButton = button('pod', '🚜', () => { closeModal(); show('drive'); driver.openRoads(); });
+const driveButton = button('pod', '🚜', openRoads);
 driveButton.id = 'driveBtn'; driveButton.replaceChildren(art('tractor'), art('trailer')); driveButton.setAttribute('aria-label', 'Drive a tractor and trailer');
 $('#farm .board').append(driveButton);
+const yardButton = button('pod', '', goFarm); yardButton.id = 'yardBtn'; yardButton.append(jobIcon(0)); yardButton.setAttribute('aria-label', 'Equipment jobs'); $('#farm .board').append(yardButton);
+for (const [id, name] of Object.entries({ yardFarm: 'home', yardDrive: 'tractor', yardCoop: 'rocket' })) putArt($('#' + id), name);
 applyLook(); save();
 if ('serviceWorker' in navigator && !/^(localhost|127\.|\[::1\])/.test(location.hostname)) navigator.serviceWorker.register('sw.js');
 </script>

@@ -8,7 +8,7 @@ const arrow = d => `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="${d}" f
 export function createDriving(screen, { speak, effect, onExit }) {
   let level = 0, state, job, nodes, frame, last = 0, running = false;
   const input = {}, pointers = new Map();
-  screen.innerHTML = `<div class="drive-top"><button class="round drive-home" aria-label="Back to the farm"></button><h1>Tractor trails</h1><button class="round drive-roads" aria-label="Choose a road"></button><span class="drive-score" aria-label="Cargo deliveries"><span></span><b>0 / 3</b></span></div><div class="drive-world"></div><div class="drive-controls"><button data-drive="forward" aria-label="Drive forward">${arrow('M32 51 V12 M14 30 L32 12 50 30')}</button><button data-drive="left" aria-label="Steer left">${arrow('M51 32 H12 M30 14 L12 32 30 50')}</button><button data-drive="right" aria-label="Steer right">${arrow('M12 32 H51 M33 14 L51 32 33 50')}</button><button data-drive="reverse" aria-label="Drive backward">${arrow('M32 12 V51 M14 33 L32 51 50 33')}</button></div><div class="drive-menu"></div>`;
+  screen.innerHTML = `<div class="drive-top"><button class="round drive-home" aria-label="Back to equipment jobs"></button><h1>Tractor trails</h1><button class="round drive-roads" aria-label="Choose a road"></button><span class="drive-score" aria-label="Cargo deliveries"><span></span><b>0 / 3</b></span></div><div class="drive-world"></div><div class="drive-controls"><button data-drive="forward" aria-label="Drive forward">${arrow('M32 51 V12 M14 30 L32 12 50 30')}</button><button data-drive="left" aria-label="Steer left">${arrow('M51 32 H12 M30 14 L12 32 30 50')}</button><button data-drive="right" aria-label="Steer right">${arrow('M12 32 H51 M33 14 L51 32 33 50')}</button><button data-drive="reverse" aria-label="Drive backward">${arrow('M32 12 V51 M14 33 L32 51 50 33')}</button></div><div class="drive-menu"></div>`;
   const world = screen.querySelector('.drive-world'), menu = screen.querySelector('.drive-menu'), controls = screen.querySelector('.drive-controls');
   screen.querySelector('.drive-home').append(art('home'));
   screen.querySelector('.drive-roads').append(art('road'));
@@ -87,7 +87,7 @@ export function createDriving(screen, { speak, effect, onExit }) {
     const title = document.createElement('h2'); title.textContent = '3 / 3'; menu.append(title);
     const row = document.createElement('div'); row.className = 'drive-finish-buttons'; menu.append(row);
     const next = document.createElement('button'); next.className = 'round'; next.setAttribute('aria-label', level < ROADS.length - 1 ? 'Next road' : 'Choose a road'); next.append(art('road')); next.onclick = () => level < ROADS.length - 1 ? start(level + 1) : openRoads();
-    const home = document.createElement('button'); home.className = 'round'; home.setAttribute('aria-label', 'Back to the farm'); home.append(art('home')); home.onclick = onExit; row.append(home, next);
+    const home = document.createElement('button'); home.className = 'round'; home.setAttribute('aria-label', 'Back to equipment jobs'); home.append(art('home')); home.onclick = onExit; row.append(home, next);
     effect('win'); speak('All three loads delivered! Great driving.');
   }
   return { openRoads, stop };

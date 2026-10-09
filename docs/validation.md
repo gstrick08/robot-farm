@@ -39,3 +39,19 @@ The approved equipment direction is implemented as three immediately available r
 Browser route harness completed all three roads (3/3 each) through held pointer controls, including automatic loading/unloading and finish screens. The before/after learning-save strings were identical.
 
 The final worker was installed on isolated port 8005, the server was stopped, the game reloaded, and River bridge loaded and returned to the farm without network service. Both driving runtime modules are precached. Driving controls measured at least 78px at the tested small viewport; farm tiles remained 78.203px, with all 60 present. The three road layouts were also captured for review.
+
+## Equipment learning follow-up
+
+Approved design: guided original equipment jobs now wrap the existing daily reading missions. The main hub presents tractor assembly, field work, corn hauling and popcorn processing. Jobs rotate across the configured 2–5 daily slots; there are no additional learning missions or job currencies. The farm, roads, parent gate, Mission Control and school tools remain accessible. `logic.js` is byte-identical to the original baseline. The v1 learning schema and localStorage key are unchanged.
+
+All five Node checks passed, including the new `check-equipment.mjs` job rotation, presentation progress and mission boundary checks. Offline asset installation now uses `robotfarm-3` and includes `equipment.js`.
+
+`tools/equipment-audit.html` runs the current index source inside a generated localhost iframe with isolated test hooks. On fresh port 8008, all five mission types passed deliberate first and second misses, fading and disabled wrong choices, second-miss hints, silver without gold-bag fill, equipment actions, ten-gold completion, exact seed rewards and the unchanged Glitch bonus. A full 15-silver mission ended at the cap with no gold rewards. Quitting retained earned seeds and prevented stale questions. Road navigation preserved the learning save. A played v1 fixture loaded with the original schema, 13 seeds and one golden seed.
+
+All five answer layouts fit inside 1024×768 with touch targets at least 72px. The five-job hub buttons measured 236×82px; navigation buttons measured 72×72px and remained within the viewport. The equipment screens were also captured at 1180×820. CSS disables equipment transform/opacity transitions under reduced motion; actual device accessibility-setting behavior remains part of iPad acceptance.
+
+A direct non-fast session at port 8006 preserved its existing progress on reload. Spoken instructions preceded the choices, and prompt replay disabled all five choices until speech finished. The production game on the isolated port produced no console errors. Early development harness syntax/selector errors were corrected before the passing run; no errors occurred on the passing port 8008 run or its direct game tab.
+
+The final worker was installed on port 8008, the server was stopped, and the direct game reloaded. The job hub and popcorn reading mission, including its machinery SVG and choices, worked without network service. No console errors occurred in that offline game.
+
+Native iPad speech quality, measured 60fps, home-screen worker update and multi-touch driving still require real-device acceptance. Parent reading/assessment functions were unchanged in this follow-up; their earlier checks and the backup/restore/report Node checks remain the evidence for those flows.

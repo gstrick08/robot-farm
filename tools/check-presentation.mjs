@@ -45,11 +45,11 @@ console.log('Presentation checks passed ✔');
 // Exercise the service worker install: every required local asset must be precached.
 const events = {}, cached = [];
 const worker = { self: { addEventListener: (type, fn) => events[type] = fn, skipWaiting() {} },
-  caches: { open: async name => ({ addAll: async paths => { assert.equal(name, 'robotfarm-2'); cached.push(...paths); } }) },
+  caches: { open: async name => ({ addAll: async paths => { assert.equal(name, 'robotfarm-3'); cached.push(...paths); } }) },
 };
 vm.runInNewContext(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), worker);
 let installed; events.install({ waitUntil: p => installed = p }); await installed;
 for (const asset of cached.filter(p => p !== './')) assert.ok(existsSync(new URL('../' + asset, import.meta.url)), 'Cached asset exists: ' + asset);
 for (const name of SOUND_FILES) assert.ok(cached.includes('audio/' + name + '.m4a'));
-for (const asset of ['ui.css', 'art.js', 'presentation.js', 'sounds.js', 'driving.js', 'drive-math.js', 'fonts/Fredoka-Latin.woff2']) assert.ok(cached.includes(asset));
+for (const asset of ['ui.css', 'art.js', 'presentation.js', 'sounds.js', 'driving.js', 'drive-math.js', 'equipment.js', 'fonts/Fredoka-Latin.woff2']) assert.ok(cached.includes(asset));
 console.log('Offline asset checks passed ✔');

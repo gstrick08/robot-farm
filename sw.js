@@ -1,7 +1,7 @@
 // Offline cache. Bump VERSION on every deploy so the iPad picks up the new game.
-const VERSION = 'robotfarm-2';
+const VERSION = 'robotfarm-3';
 const CORE = [
-  './', 'index.html', 'logic.js', 'ui.css', 'art.js', 'presentation.js', 'sounds.js', 'driving.js', 'drive-math.js',
+  './', 'index.html', 'logic.js', 'ui.css', 'art.js', 'presentation.js', 'sounds.js', 'driving.js', 'drive-math.js', 'equipment.js',
   'manifest.webmanifest', 'icon.png', 'fonts/Andika-Regular.woff2', 'fonts/Fredoka-Latin.woff2',
   ...['tap', 'gold', 'silver', 'hmm', 'coin', 'harvest', 'bag', 'complete', 'rocket', 'medal', 'farm'].map(n => `audio/${n}.m4a`),
 ];

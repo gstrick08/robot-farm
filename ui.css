@@ -176,3 +176,48 @@ body[data-screen="drive"] .bot { display: none; }
 @media (max-height: 760px) { .drive-controls { grid-template-columns: 78px 78px; gap: 12px; } .drive-controls button { width: 78px; height: 78px; } }
 
 .drive-score[hidden] { display: none; }
+
+/* Guided equipment jobs present the same daily reading missions. */
+#yard { flex-direction: column; background: #e7eedb; padding: calc(18px + env(safe-area-inset-top)) calc(26px + env(safe-area-inset-right)) calc(90px + env(safe-area-inset-bottom)) calc(26px + env(safe-area-inset-left)); }
+body[data-screen="yard"] #gear { display: grid; }
+.yard-top { display: flex; align-items: center; justify-content: space-between; padding-right: 92px; min-height: 72px; gap: 20px; }
+.yard-top h1 { font: 38px Fredoka, sans-serif; margin: 0; }
+.yard-counts { display: flex; gap: 12px; font: 26px Fredoka, sans-serif; }
+.yard-counts span { display: flex; align-items: center; gap: 8px; background: var(--card); padding: 8px 14px; border: 2px solid #a7bb90; border-radius: 20px; }
+.yard-counts .art { width: 35px; height: 35px; }
+.yard-layout { display: grid; grid-template-columns: 236px minmax(0,1fr); gap: 24px; flex: 1; min-height: 0; padding-top: 20px; }
+.yard-layout h2 { font: 23px Fredoka, sans-serif; margin: 0 0 16px; }
+#yardJobs { display: grid; gap: 12px; }
+.yard-job { display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 82px; width: 100%; border: 3px solid #a8bd98; background: var(--card); border-radius: 22px; box-shadow: 0 5px 0 #c7d4b6; text-align: left; font: 20px Fredoka, sans-serif; }
+.yard-job .art { width: 48px; height: 48px; }
+.yard-job.done { background: #e2e8ca; }
+.yard-job.done > .art:last-child { width: 25px; height: 25px; margin-left: auto; }
+.yard-job.selected { background: #f3e5b5; border-color: #baa56b; }
+.yard-adventure { display: flex; flex-direction: column; justify-content: center; min-height: 0; }
+.yard-adventure h2 { font-size: 32px; }
+.equipment-scene { border: 3px solid #a0bb90; background: var(--card); border-radius: 28px; padding: 12px; box-shadow: 0 6px 0 #c7d4b6; overflow: hidden; }
+.equipment-scene > svg { display: block; width: 100%; height: auto; max-height: 340px; border-radius: 18px; }
+.yard-start { width: 100%; display: flex; align-items: center; justify-content: center; gap: 15px; min-height: 82px; margin-top: 20px; background: #e8d89b; border: 3px solid #bda66c; border-radius: 24px; box-shadow: 0 5px 0 #c6b780; font: 27px Fredoka, sans-serif; }
+.yard-start .art { width: 52px; height: 52px; }
+.yard-nav { position: absolute; bottom: calc(15px + env(safe-area-inset-bottom)); left: calc(180px + env(safe-area-inset-left)); right: calc(26px + env(safe-area-inset-right)); display: flex; justify-content: flex-end; gap: 15px; }
+.yard-nav .round { border-radius: 20px; }
+body[data-screen="yard"] .bot { animation: none; }
+.mission-equipment { position: relative; width: calc(100% - 64px); max-width: 1050px; flex-shrink: 0; }
+.mission-equipment h2 { position: absolute; z-index: 1; top: 14px; left: 22px; margin: 0; padding: 8px 16px; border-radius: 15px; background: var(--card); border: 2px solid #b4c7a4; font: 21px Fredoka, sans-serif; }
+#jobScene { padding: 6px; border-radius: 25px; }
+#jobScene > svg { height: clamp(160px,27vh,220px); max-height: none; }
+.equipment-travel { transition: transform .35s ease-out; }
+.equipment-bit, .assembly-base, .equipment-growth { transition: opacity .35s ease-out; }
+#mission .opts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-content: center; gap: 16px; width: calc(100% - 260px); max-width: 1000px; padding: 12px 0 65px; }
+#mission .opts[data-count="2"], #mission .opts[data-count="4"] { grid-template-columns: repeat(2,minmax(0,1fr)); }
+#mission .opt, #mission .opts.grid .opt, #mission .opts.pods .opt, #mission .opts.blocks .opt { min-width: 0; min-height: 98px; max-width: none; padding: 4px 12px 10px; font-size: clamp(46px,5.4vw,64px); border-radius: 22px; }
+#mission .opts.blocks .opt { font-size: 76px; }
+#mission .prompt.teach { font-size: clamp(82px,11vw,130px); margin: 12px 0 0; }
+#mission .prompt.twin { font-size: 80px; margin: 12px 0 0; padding: 4px 45px 8px; }
+#mission .glitch { top: 134px; right: 48px; width: 90px; height: 82px; z-index: 2; }
+#mission .glitch .art { width: 90px; height: 82px; }
+.equipment-reward { width: 100%; margin: 10px auto; }
+.equipment-reward svg { width: 100%; max-height: 180px; display: block; border-radius: 20px; }
+.job-complete-title { font: 28px Fredoka, sans-serif; margin: 0; }
+@media(max-height:760px) { .yard-layout { padding-top: 12px; } .yard-job { min-height: 76px; } #yardJobs { gap: 10px; } .yard-adventure h2 { font-size: 27px; } #jobScene > svg { height: 160px; } #mission .opts { padding-bottom: 55px; } }
+@media(prefers-reduced-motion:reduce) { .equipment-travel, .equipment-bit, .assembly-base, .equipment-growth { transition: none; } }
