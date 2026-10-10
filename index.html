@@ -221,6 +221,7 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
   <div class="mtop"><button id="quit" class="round" aria-label="Back to equipment jobs">🏡</button><div id="bag" class="bag"></div><button id="replay" class="round" aria-label="Hear it again">🔊</button></div>
   <div id="glitch" class="glitch" hidden><span>☁️</span></div>
   <section class="mission-equipment"><h2 id="jobTitle"></h2><div id="jobScene" class="equipment-scene"></div></section>
+  <div id="jobAction" hidden><p id="actionTitle"></p><button id="actionGo" class="play" aria-label="Power up our farm machine">🚜</button></div>
   <div id="prompt" class="prompt"></div>
   <div id="opts" class="opts"></div>
 </main>
@@ -256,6 +257,7 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 
 <script type="module">
 import * as L from './logic.js';
+import { readProgress, writeProgress, validJobs } from './job-progress.js';
 import { art, robotArt } from './art.js';
 import { rankVoices, voiceQuality, audioPreferences, speechRate } from './presentation.js';
 import { sounds } from './sounds.js';
@@ -264,7 +266,7 @@ import { JOBS, jobFor, equipmentProgress, jobIcon, createEquipment } from './equ
 
 const $ = s => document.querySelector(s);
 const el = (tag, cls = '', text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
-const ICON = { '🪙': 'coin', '🌱': 'seed', '✨': 'goldseed', '🔎': 'search', '⛏️': 'pick', '🫧': 'pod', '🔠': 'twins', '☁️': 'glitch', '🚀': 'rocket', '🛒': 'shop', '🏡': 'home', '🔊': 'sound', '⚙️': 'gear', '🏅': 'medal', '🥕': 'carrot', '🌽': 'corn', '🍓': 'strawberry', '🎃': 'pumpkin', '🌳': 'tree', '🛸': 'ship', '🤖': 'bot', '⭐': 'star', '🌟': 'star', '🔙': 'back', '▶': 'play', '🧢': 'cap', '🎩': 'tophat', '👑': 'crown' };
+const ICON = { '📖': 'book', '🪙': 'coin', '🌱': 'seed', '✨': 'goldseed', '🔎': 'search', '⛏️': 'pick', '🫧': 'pod', '🔠': 'twins', '☁️': 'glitch', '🚀': 'rocket', '🛒': 'shop', '🏡': 'home', '🔊': 'sound', '⚙️': 'gear', '🏅': 'medal', '🥕': 'carrot', '🌽': 'corn', '🍓': 'strawberry', '🎃': 'pumpkin', '🌳': 'tree', '🛸': 'ship', '🤖': 'bot', '⭐': 'star', '🌟': 'star', '🔙': 'back', '▶': 'play', '🧢': 'cap', '🎩': 'tophat', '👑': 'crown' };
 const button = (cls, text, fn) => { const b = el('button', cls); if (ICON[text]) { b.append(art(ICON[text])); b.setAttribute('aria-label', ICON[text]); } else b.textContent = text; b.onclick = fn; return b; };
 const putArt = (node, name) => node.replaceChildren(art(name));
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -292,9 +294,10 @@ const fresh = () => ({
   coins: 0, seeds: 3, goldSeeds: 0, hat: '', placing: null, newBots: [], streak: 0, best: { streak: 0 },
   farm: newFarm(),
 });
-let S = fresh();
-try { const s = JSON.parse(localStorage.getItem(KEY)); if (s?.v === 1) S = { ...fresh(), ...s, settings: { ...fresh().settings, ...s.settings } }; } catch {}
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { console.warn('save failed', e); } };
+let S = fresh(), jobSessions = [];
+const stored = readProgress(localStorage, KEY); jobSessions = stored.jobs;
+try { const s = JSON.parse(stored.raw); if (s?.v === 1) S = { ...fresh(), ...s, settings: { ...fresh().settings, ...s.settings } }; } catch {}
+const save = () => { try { checkpoint(); writeProgress(localStorage, KEY, S, jobSessions); } catch (e) { console.warn('save failed', e); } };
 
 const item = k => (S.items[k] ||= L.newItem());
 const peek = k => S.items[k] || L.newItem();
@@ -646,17 +649,19 @@ function renderYard() {
   const missions = todaysMissions(), next = missions.findIndex((_, n) => !S.day.done.includes(n));
   const selected = next < 0 ? missions.length - 1 : next, job = dailyJob(selected);
   $('#yardJobs').replaceChildren(...missions.map((type, n) => {
-    const done = S.day.done.includes(n), j = dailyJob(n);
+    const done = S.day.done.includes(n), j = dailyJob(n), paused = pausedJob(type, n);
     const b = button('yard-job' + (done ? ' done' : '') + (n === next ? ' selected' : ''), '', () =>
-      done ? say('We did that job. Great work!') : startMission(type, n));
+      done ? openReader(j) : startMission(type, n));
     b.append(jobIcon(j), el('span', '', JOBS[j].name));
     if (done) b.append(art('star'));
-    b.setAttribute('aria-label', JOBS[j].name + (done ? ', complete' : ''));
+    else if (paused) b.append(el('small', 'paused-job', `${paused.m.golds} / 10 · Resume`));
+    b.setAttribute('aria-label', JOBS[j].name + (done ? ', complete' : paused ? ', resume saved job' : ''));
     return b;
   }));
   $('#yardTitle').textContent = next < 0 ? 'Our machines are ready!' : JOBS[job].name;
-  createEquipment($('#yardScene'), job, next < 0 ? 1 : 0);
-  $('#yardStart').replaceChildren(art(next < 0 ? 'tractor' : 'play'), el('span', '', next < 0 ? 'Pick a road' : 'Start our farm job'));
+  const paused = next < 0 ? null : pausedJob(missions[next], next);
+  createEquipment($('#yardScene'), job, next < 0 ? 1 : paused ? equipmentProgress(paused.m) : 0);
+  $('#yardStart').replaceChildren(art(next < 0 ? 'tractor' : 'play'), el('span', '', next < 0 ? 'Pick a road' : paused ? 'Resume our farm job' : 'Start our farm job'));
   $('#yardStart').onclick = () => next < 0 ? openRoads() : startMission(missions[next], next);
   $('#yardCounts').replaceChildren(...[['seed', S.seeds], ['coin', S.coins]].map(([name, value]) => {
     const count = el('span'); count.append(art(name), el('b', '', value)); return count;
@@ -679,6 +684,26 @@ function fontFor(keys) {
 }
 const PRAISE = ['Yes!', 'You got it!', 'Great looking!', 'Super reading!', 'Awesome!', 'You looked carefully!', 'Nice one!'];
 let M = null, qGen = 0;
+const jobContext = () => JSON.stringify([TODAY(), S.start, S.cur, S.settings.perDay, wordKeys()]);
+function pausedJob(type, n) { return jobSessions.find(j => j.context === jobContext() && j.type === type && j.n === n); }
+function checkpoint() {
+  const context = jobContext();
+  // Rotating daily jobs must still bank any gold earned before the browser closed.
+  for (const j of jobSessions.filter(j => j.context !== context)) {
+    if (M?.phase && M.n === j.n && M.type === j.type) payJobSeeds();
+    else S.seeds += j.m.golds - j.paidGold;
+  }
+  jobSessions = jobSessions.filter(j => j.context === context && !S.day.done.includes(j.n));
+  if (!M?.phase) return;
+  const { type, n, job, m, ease, phase, question, paidGold } = M;
+  jobSessions = jobSessions.filter(j => j.n !== n);
+  jobSessions.push(structuredClone({ context: jobContext(), type, n, job, m, ease, phase, question, paidGold }));
+}
+function payJobSeeds() {
+  S.seeds += M.m.golds - M.paidGold;
+  M.paidGold = M.m.golds;
+}
+
 
 async function startMission(type, n) {
   const words = wordKeys();
@@ -689,15 +714,20 @@ async function startMission(type, n) {
     const { focus, known } = L.pickFocus(isL ? L.LETTER_KEYS : listKeys(curList()), isL ? L.LETTER_KEYS : words, S.items);
     queue = L.buildQueue(focus, known, L.CAP + 2);
   }
-  M = { type, n, job: dailyJob(n), m: L.createMission(queue), ease: false, prompt: '' };
+  const paused = pausedJob(type, n);
+  M = paused ? structuredClone(paused) : { type, n, job: dailyJob(n), m: L.createMission(queue), ease: false, prompt: '', paidGold: 0 };
   $('#jobTitle').textContent = JOBS[M.job].name;
-  M.equipment = createEquipment($('#jobScene'), M.job);
+  M.equipment = createEquipment($('#jobScene'), M.job, equipmentProgress(M.m));
+  $('#mission').classList.remove('action'); $('#jobAction').hidden = true; $('#replay').disabled = false;
   show('mission'); $('#mission').dataset.type = type; renderBag();
   $('#prompt').className = 'prompt'; $('#prompt').textContent = ''; $('#opts').replaceChildren();
   $('#glitch').hidden = type !== 'boss'; $('#glitch').style.transform = '';
   const g = ++qGen;
-  await say(JOBS[M.job].intro + ' ' + MISSION[type].intro);
-  if (g === qGen) nextQ();
+  await say(paused ? 'Welcome back! Let’s finish our farm job.' : JOBS[M.job].intro + ' ' + MISSION[type].intro);
+  if (g !== qGen) return;
+  if (M.phase === 'question') return drawQuestion(g);
+  if (M.phase === 'action') return actionBreak(g);
+  nextQ();
 }
 
 function promptText(target) {
@@ -726,20 +756,30 @@ async function nextQ() {
   const opts = L.placeTarget(raw, target, m.lastPos);
   const t = L.keyText(target), twinKey = twin ? 'L:' + (L.isUpper(t) ? t.toLowerCase() : t.toUpperCase()) : null;
   const font = fontFor(twinKey ? [...opts, twinKey] : opts);
+  M.question = { options: opts, font, wrong: [], hint: false, teach: L.isNew(it) && M.type !== 'boss' };
+  M.phase = 'question'; save();
+  return drawQuestion(g);
+}
+async function drawQuestion(g) {
+  const target = M.m.current, isL = L.isLetterKey(target), twin = M.type === 'twins';
+  const { options: opts, font, wrong, hint, teach } = M.question;
+  const t = L.keyText(target), twinKey = twin ? 'L:' + (L.isUpper(t) ? t.toLowerCase() : t.toUpperCase()) : null;
+  const layout = M.type === 'hunt' ? 'grid' : isL ? 'blocks' : 'pods';
   const box = $('#opts'), card = $('#prompt');
   box.className = 'opts locked ' + layout; box.dataset.count = opts.length;
   box.replaceChildren(...opts.map(k => {
-    const b = button('opt', L.keyText(k), () => tapOpt(b, k, target, g));
+    const b = button('opt' + (wrong.includes(k) ? ' faded' : '') + (hint && k === target ? ' hint' : ''), L.keyText(k), () => tapOpt(b, k, target, g));
     b.dataset.k = k; b.disabled = true; b.style.fontFamily = font;
     return b;
   }));
   card.className = 'prompt'; card.textContent = ''; card.style.fontFamily = font;
-  if (L.isNew(it) && M.type !== 'boss') { // teach it before asking it
+  if (teach) { // teach it before asking it
     card.className = 'prompt teach'; card.textContent = t; box.classList.add('hidden');
     await say(isL ? `This is ${caseWord(target)} ${speak(target)}. Say ${speak(target)}!` : `This word is ${speak(target)}. Say ${speak(target)}!`);
     await sleep(1600); // time for him to say it
     if (g !== qGen) return;
     box.classList.remove('hidden'); card.className = 'prompt'; card.textContent = '';
+    M.question.teach = false; save();
   }
   if (twin) { card.className = 'prompt twin'; card.textContent = L.keyText(twinKey); }
   M.prompt = promptText(target);
@@ -762,7 +802,8 @@ async function tapOpt(b, k, target, g) {
       sfx.gold(); flySeed(b); logToday('g');
       if (++S.streak > S.best.streak) { S.best.streak = S.streak; if (S.streak >= 10 && S.streak % 5 === 0) record = S.streak; }
     } else sfx.silver();
-    save();
+    M.phase = 'advance'; M.ease = r === 'silver'; save();
+    machineBurst();
     M.equipment.paint(equipmentProgress(M.m));
     await sleep(400); // Finish the equipment action before the next spoken question.
     if (g !== qGen) return;
@@ -770,16 +811,86 @@ async function tapOpt(b, k, target, g) {
     else await say(r === 'gold' ? pick(PRAISE) : `Yes! That's ${speak(target)}. Say ${speak(target)}!`);
     if (r === 'silver') await sleep(1200);
     if (g !== qGen) return;
-    M.ease = r === 'silver'; // right after a miss, the next one is quietly easier
+    if ((M.m.golds + M.m.silvers) % 3 === 0 && !L.missionDone(M.m)) { M.phase = 'action'; save(); return actionBreak(g); }
     return nextQ();
   }
   b.classList.add('faded'); sfx.soft(); curious();
   if (M.type === 'boss') wobbleGlitch(false);
-  if (r === 'miss') { track(target, it => L.recordSolo(it, 'miss', TODAY())); S.streak = 0; save(); }
+  if (r === 'miss') { track(target, it => L.recordSolo(it, 'miss', TODAY())); S.streak = 0; }
   else $('#opts').querySelector(`[data-k="${CSS.escape(target)}"]`)?.classList.add('hint'); // 2nd miss: show which one
+  M.question.wrong = [...document.querySelectorAll('#opts .faded')].map(b => b.dataset.k);
+  M.question.hint = !!$('#opts .hint'); save();
   await say((quick ? 'Eagle eyes! Look carefully. ' : 'Hmm, look again. ') + M.prompt);
   await speechIdle();
   if (g === qGen) unlock();
+}
+
+// Action happens between questions, so the listening screen stays still.
+function machineBurst(big = false) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const scene = $('#jobScene');
+  for (let i = 0; i < (big ? 12 : 6); i++) {
+    const spark = el('i', 'machine-spark', ['★','✦','●'][i % 3]);
+    scene.append(spark);
+    const angle = i * Math.PI * 2 / (big ? 12 : 6), distance = big ? 130 : 65;
+    const motion = spark.animate([
+      { transform: 'translate(-50%,-50%) scale(.3)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(angle)*distance}px),calc(-50% + ${Math.sin(angle)*distance}px)) scale(1)`, opacity: 0 }
+    ], { duration: FAST ? 40 : big ? 750 : 350, easing: 'ease-out' });
+    motion.onfinish = motion.oncancel = () => spark.remove();
+  }
+}
+const ACTIONS = [
+  ['Tractor turbo!', 'Let’s boost our tractor! Tap the big button.'],
+  ['Tractor turbo!', 'Let’s boost our tractor! Tap the big button.'],
+  ['Lift the cargo!', 'Time to lift our cargo! Tap the big button.'],
+  ['Popcorn party!', 'Let’s pop our corn! Tap the big button.']
+];
+async function actionBreak(g) {
+  const mission = M, panel = $('#jobAction'), go = $('#actionGo');
+  lock(); $('#mission').classList.add('action'); panel.hidden = false;
+  $('#actionTitle').textContent = ACTIONS[M.job][0];
+  go.replaceChildren(jobIcon(M.job)); go.disabled = true;
+  $('#replay').disabled = true;
+  await say(ACTIONS[M.job][1]); await speechIdle();
+  if (g !== qGen || M !== mission) return;
+  go.disabled = false;
+  go.onclick = async () => {
+    if (g !== qGen || M !== mission || go.disabled) return;
+    go.disabled = true; M.phase = 'advance'; save();
+    machineBurst(true); sfx.harvest();
+    const machine = $('#jobScene .equipment-travel');
+    const motion = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : machine?.animate([
+      { transform: 'translateX(0)' }, { transform: 'translateX(35px) translateY(-8px)' }, { transform: 'translateX(0)' }
+    ], { duration: FAST ? 75 : 750, easing: 'ease-in-out' });
+    await sleep(800);
+    motion?.cancel();
+    if (g !== qGen || M !== mission) return;
+    panel.hidden = true; $('#mission').classList.remove('action'); $('#replay').disabled = false;
+    nextQ();
+  };
+}
+function readerPages() {
+  const available = wordKeys().filter(k => L.isKnown(peek(k))).map(L.keyText);
+  const stories = [['see me.', 'I can.', 'I can get him.'], ['I like him.', 'I see him.', 'I can get him.']];
+  const story = stories.find(pages => pages.every(text => text.replace(/[.!]/g,'').split(' ').every(w => available.includes(w))));
+  return story || available.slice(0,3);
+}
+function openReader(job) {
+  closeModal(); synth?.cancel();
+  const pages = readerPages();
+  if (!pages.length) return say('Keep practicing! We’ll read together when our words are ready.');
+  let page = 0;
+  const box = openModal('', true); box.classList.add('mini-reader');
+  const title = el('h2', '', 'Our farm story'), scene = el('div', 'reader-scene'), text = el('p', 'reader-text'), count = el('p', 'reader-count');
+  const controls = el('div', 'reader-controls');
+  const back = button('round', '◀', () => { if(page > 0){page--;paint();} }), help = button('round', '🔊', () => say(pages[page]));
+  const next = button('round', '▶', () => { if(page < pages.length-1){page++;paint();}else{closeModal();goFarm();} });
+  back.setAttribute('aria-label','Previous story page'); help.setAttribute('aria-label','Read this story page aloud'); next.setAttribute('aria-label','Next story page or finish');
+  const home = button('round', '🏡', () => {closeModal();goFarm();});home.setAttribute('aria-label','Back to jobs');
+  controls.append(back,help,next,home);box.append(title,scene,text,count,controls);
+  function paint(){createEquipment(scene,job,(page+1)/pages.length);text.textContent=pages[page];count.textContent=`${page+1} / ${pages.length}`;back.disabled=page===0;}
+  paint();say('Your turn! Try reading this page. Tap the sound button for help.');
 }
 
 function renderBag() {
@@ -810,12 +921,12 @@ function wobbleGlitch(hit) {
 async function finishMission() {
   const { m, type, n, job } = M, full = m.golds >= m.nGold;
   renderBag();
-  S.seeds += m.golds;
+  payJobSeeds();
   if (full) S.goldSeeds++;
   if (type === 'boss') S.coins += 5;
   if (!S.day.done.includes(n)) S.day.done.push(n);
-  logToday('m'); save();
-  M = null; ++qGen;
+  logToday('m'); M = null; save();
+  ++qGen;
   sfx.win(); happy();
   const box = openModal('', true); sound?.scene('reward');
   const hero = el('div', 'equipment-reward'); createEquipment(hero, job, 1);
@@ -826,13 +937,16 @@ async function finishMission() {
   if (type === 'boss') { const bonus = el('div', 'reward-count', '+5'); bonus.append(art('coin')); box.append(bonus); }
   const leave = () => { closeModal(); synth?.cancel(); celebrateBots().then(goFarm); };
   box.append(button('play small', '🏡', leave));
+  const book = button('play small reader-open', '📖', () => openReader(job));
+  book.setAttribute('aria-label', 'Read our mini book'); box.append(book);
   if (full) sfx.bag();
   confetti(); rewardTimer = setTimeout(leave, FAST ? 380 : 3800);
   await say(m.golds ? `Great reading! ${m.golds} seeds${full ? ', and a golden seed' : ''}.` : 'Great work, reader! Back to the farm.');
 }
 $('#quit').onclick = () => { // leaving early keeps every seed he earned
-  if (M) { S.seeds += M.m.golds; save(); }
-  M = null; ++qGen; synth?.cancel(); goFarm(); say('Okay! Back to our jobs.');
+  if (M) { payJobSeeds(); save(); }
+  M = null; ++qGen; $('#jobAction').hidden = true; $('#mission').classList.remove('action'); $('#replay').disabled = false;
+  document.querySelectorAll('.machine-spark').forEach(e => {e.getAnimations().forEach(a => a.cancel());e.remove();}); synth?.cancel(); goFarm(); say('Okay! Back to our jobs.');
 };
 $('#replay').onclick = async () => {
   if (!M?.prompt) return;
@@ -1027,7 +1141,7 @@ async function shareReport() {
   try { await navigator.clipboard.writeText(text); renderParent('Report copied. Paste it into a message or note.'); } catch { prompt('Copy this report:', text); }
 }
 async function saveBackup() {
-  const name = `robot-farm-backup-${TODAY()}.json`, blob = new Blob([JSON.stringify(S)], { type: 'application/json' });
+  const name = `robot-farm-backup-${TODAY()}.json`, blob = new Blob([JSON.stringify(jobSessions.length ? { ...S, jobSessions } : S)], { type: 'application/json' });
   const file = new File([blob], name, { type: 'application/json' });
   if (navigator.canShare?.({ files: [file] })) { try { return await navigator.share({ files: [file] }); } catch (e) { if (e.name === 'AbortError') return; } }
   const a = el('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
@@ -1052,9 +1166,9 @@ function validBackup(d) {
 function restoreBackup(file) {
   file?.text().then(t => {
     const d = JSON.parse(t);
-    if (!validBackup(d)) throw new Error('not a backup');
+    if (!validBackup(d) || (d.jobSessions !== undefined && !validJobs(d.jobSessions))) throw new Error('not a backup');
     if (!confirm('Replace the progress on this device with this backup?')) return;
-    S = d; save(); location.reload();
+    jobSessions = d.jobSessions || []; delete d.jobSessions; M = null; S = d; save(); location.reload();
   }).catch(() => alert('That file is not a Robot Farm backup.'));
 }
 
@@ -1109,7 +1223,7 @@ $('#parentBody').onchange = e => {
 // ---------- boot ----------
 document.addEventListener('visibilitychange', () => {
   sound?.visibility(document.hidden);
-  if (document.hidden) return synth?.cancel();
+  if (document.hidden) { if (M) save(); return synth?.cancel(); }
   ac?.resume().catch(() => {});
   rollDay();
   if (document.body.dataset.screen === 'farm') renderFarm();

@@ -10,15 +10,17 @@ window.mobileChecks = async () => {
   const f=window.parent.document.querySelector('iframe'); f.style.width=width+'px';f.style.height=height+'px';await new Promise(r=>setTimeout(r,80));
   window.showFiveJobs();fit('#yardStart');fit('.yard-nav button');const playRect=$('#yardStart').getBoundingClientRect(),navRect=$('.yard-nav').getBoundingClientRect();assert(playRect.bottom+6<=navRect.top||playRect.right+6<=navRect.left,'job start overlaps navigation');
   for(const type of ['hunt','pods','letters','twins','boss']){await startMission(type,1);await waitFor(ready);fit('#opts .opt');fit('#quit,#replay');$('#quit').click();}
+  testState();await startMission('hunt',0);await waitFor(ready);await answerRight();await answerRight();correct().click();await waitFor(()=>M?.phase==='action'&&!$('#actionGo').disabled);fit('#actionGo,#quit');$('#quit').click();
+  openReader(0);await waitFor(()=>document.querySelector('.reader-controls button')?.getBoundingClientRect().width>=71.9);fit('.reader-controls button');document.querySelector('[aria-label="Back to jobs"]').click();
   $('#yardFarm').click();const board=$('.board').getBoundingClientRect(),view=$('.farm-viewport').getBoundingClientRect();if(width<=900||height<=500)assert(board.height<=100&&board.top>=view.bottom,'farm toolbar leaves field visible');assert($('#grid').children.length===60,'all farm tiles remain');for(const b of $('#grid').children){const r=b.getBoundingClientRect();assert(r.width>=72&&r.height>=72,'farm tiles preserve touch size');}goFarm();
   $('#yardDrive').click();fit('.drive-top .round');fit('.drive-road-card');document.querySelector('.drive-road-card').click();fit('.drive-controls button');document.querySelector('.drive-home').click();
-  log(width+' × '+height+(top||left?' (simulated safe areas)':'')+': five reading layouts, job hub, roads and 72px controls passed.');
+  log(width+' × '+height+(top||left?' (simulated safe areas)':'')+': five reading layouts, saved-job hub, machine action, mini reader, roads and 72px controls passed.');
  }
  safeStyle.remove();log('PASS: phone/tablet portrait and landscape layout matrix.');
 };
 window.flowChecks = async () => {
  const result=window.parent.document.querySelector('#result'),lines=[];const log=s=>{lines.push(s);result.textContent=lines.join('\n');};
- S=fresh();save();show('start');$('#play').hidden=false;$('#play').click();await waitFor(()=>!$('#colors').hidden);$('#colors button').click();await waitFor(()=>document.body.dataset.screen==='yard');assert(S.settings.color,'color saved');log('Fresh start, robot color, daily hub passed.');
+ M=null;jobSessions=[];S=fresh();save();show('start');$('#play').hidden=false;$('#play').click();await waitFor(()=>!$('#colors').hidden);$('#colors button').click();await waitFor(()=>document.body.dataset.screen==='yard');assert(S.settings.color,'color saved');log('Fresh start, robot color, daily hub passed.');
  $('#yardFarm').click();for(const i of [21,22,23])$('#grid').children[i].click();assert(S.coins===6,'three ready crops earn six coins');$('#grid').children[21].click();document.querySelector('.choice:not(.golden)').click();assert(S.seeds===2&&S.farm[21].crop,'normal planting consumes one seed');
  S.goldSeeds=1;$('#grid').children[22].click();document.querySelector('.choice.golden').click();assert(S.goldSeeds===0&&S.farm[22].crop.gold,'gold planting consumes one golden seed');log('Harvest and normal/golden planting passed.');
  openShop();const item=document.querySelector('.shop-item');item.click();item.click();assert(S.placing&&S.coins<6,'shop second tap buys');const bought=S.placing;goFarm();assert(document.body.dataset.screen==='farm','unfinished purchase opens farm');const i=S.farm.findIndex(t=>t.t==='grass'&&!t.thing);$('#grid').children[i].click();assert(!S.placing&&(S.farm[i].t===bought||S.farm[i].thing===bought),'purchase placed');log('Shop price, double-tap purchase, saved placement passed.');
@@ -33,4 +35,34 @@ window.flowChecks = async () => {
  testState();S.items={};await startMission('hunt',0);await waitFor(()=>$('#prompt').classList.contains('teach'));assert($('#opts').classList.contains('hidden'),'new word is taught before answers');await waitFor(ready);assert(!$('#prompt').textContent,'target caption removed after teaching');$('#quit').click();log('New-item teaching precedes choices and removes target caption.');
  testState();await startCoop();while(C){document.querySelector('[data-r="fast"]').click();await new Promise(r=>setTimeout(r,5));}assert(S.coins===5&&S.day.coop===1,'full Mission Control gives original three coins');await waitFor(()=>document.body.dataset.screen==='yard');log('Full Mission Control and three-coin reward passed.');
  log('PASS: start, farm, shop, gate, placement, practice and session-race browser checks.');
+};
+
+window.resumeChecks = async () => {
+ const result=window.parent.document.querySelector('#result'),lines=[];const log=s=>{lines.push(s);result.textContent=lines.join('\n');};
+ testState();await startMission('hunt',0);await waitFor(ready);
+ await answerRight();await answerRight();
+ const before=structuredClone(M.m), question=structuredClone(M.question);wrong().click();await waitFor(ready);wrong().click();await waitFor(ready);
+ const missed=structuredClone(M.m), faded=M.question.wrong.slice(), earned=M.m.golds;
+ $('#quit').click();assert(S.seeds===13+earned,'paused seeds paid once');assert($('#yardStart').textContent.includes('Resume'),'hub offers resume');
+ await startMission('hunt',0);await waitFor(ready);assert(JSON.stringify(M.m)===JSON.stringify(missed),'resume preserves question, queue, counts and firstTry');assert(JSON.stringify(M.question.options)===JSON.stringify(question.options),'same choices and positions');assert([...document.querySelectorAll('#opts .faded')].every(b=>b.disabled)&&document.querySelectorAll('#opts .faded').length===faded.length,'faded choices remain disabled');assert(correct().classList.contains('hint'),'hint preserved');
+ $('#quit').click();assert(S.seeds===13+earned,'second pause never doubles reward');
+ // Reload the actual persisted pair into a fresh in-memory session.
+ const pair=readProgress(localStorage,KEY);M=null;jobSessions=pair.jobs;S=JSON.parse(pair.raw);await startMission('hunt',0);await waitFor(ready);assert(JSON.stringify(M.m)===JSON.stringify(missed),'reload resumes exact mission');log('Exit, return, reload: same question, hints, seed bag and equipment checkpoint; no duplicate seeds.');
+ await answerRight();assert(M.m.silvers===1,'resumed miss remains silver');assert(!$('#jobAction').hidden===false,'action returns to question');
+ await answerRight();await answerRight();
+ const oldSeeds=S.seeds;while(M)await answerRight();assert(S.seeds===23&&S.goldSeeds===2,'completion pays only the remaining golds');assert(!jobSessions.length,'finished job checkpoint removed');log('Resumed job completion: ten total seeds, one golden seed, no duplicate payout.');
+ closeModal();testState();await startMission('hunt',0);await waitFor(ready);await answerRight();await answerRight();correct().click();await waitFor(()=>M?.phase==='action'&&!$('#actionGo').disabled);
+ assert($('#opts').classList.contains('locked'),'reading choices lock during machine action');assert($('#actionGo').getBoundingClientRect().width>=72,'action is a large touch target');$('#quit').click();await startMission('hunt',0);await waitFor(()=>M?.phase==='action'&&!$('#actionGo').disabled);assert(M.m.golds===3,'pending machine break resumes without repeating rewards');$('#actionGo').click();await waitFor(ready);assert($('#jobAction').hidden,'action ends before listening');log('Three-answer machine break: large button, pause/resume, locked choices and quiet next question.');
+ $('#quit').click();openReader(0);await waitFor(()=>document.querySelector('.reader-controls button')?.getBoundingClientRect().width>=71.9);assert($('#modal .reader-text').textContent,'original reader shows familiar text');for(const b of document.querySelectorAll('.reader-controls button')){const r=b.getBoundingClientRect();assert(r.width>=71.5&&r.height>=71.5,'reader touch targets');}document.querySelector('[aria-label="Next story page or finish"]').click();assert($('.reader-count').textContent==='2 / 3','reader advances');document.querySelector('[aria-label="Back to jobs"]').click();log('Optional original reader: familiar words, sound help, page advance and return to jobs.');
+ log('PASS: saved jobs, action breaks and mini reader.');
+};
+
+window.showActionTest=async()=>{testState();await startMission('hunt',0);await waitFor(ready);await answerRight();await answerRight();correct().click();await waitFor(()=>M?.phase==='action'&&!$('#actionGo').disabled);};
+window.showReaderTest=()=>{testState();goFarm();openReader(0);};
+
+window.reducedChecks=async()=>{
+ const real=window.matchMedia,style=document.createElement('style');style.textContent='*,*::before,*::after{animation:none!important;transition:none!important}';document.head.append(style);
+ window.matchMedia=query=>query.includes('prefers-reduced-motion')?{matches:true}:real.call(window,query);
+ try{await window.showActionTest();assert(!document.querySelector('.machine-spark'),'reduced motion has no moving particles');$('#actionGo').click();await waitFor(ready);assert(!document.querySelector('.machine-spark'),'action stays motionless');$('#quit').click();window.parent.document.querySelector('#result').textContent='PASS: reduced-motion machine action, no particles, same answers and rewards.';}
+ finally{window.matchMedia=real;style.remove();}
 };
