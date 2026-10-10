@@ -6,16 +6,27 @@
 <iframe id="game" src="about:blank"></iframe><pre id="result"></pre>
 <script>
 const frame=document.querySelector('iframe'),result=document.querySelector('#result');
+async function loadGame(fast,today='') {
+ let html=await(await fetch('../index.html',{cache:'no-store'})).text();
+ let driver=await(await fetch('../driving.js',{cache:'no-store'})).text();
+ driver=driver.replaceAll("from './", "from '"+new URL('../',location.href).href).replace('function paint() {', 'function paint() { window.routeProbe = {...state, target: ROADS[level][job.loaded ? "drop" : "pickup"]};');
+ const url=URL.createObjectURL(new Blob([driver],{type:'text/javascript'}));
+ html=html.replace("if ('serviceWorker' in navigator", "if (false && 'serviceWorker' in navigator").replace("'./driving.js'",JSON.stringify(url)).replace('<head>','<head><base href="'+new URL('../',location.href).href+'">').replace("const FAST = qs.has('fast');",'const FAST = '+fast+';');
+ if(today)html=html.replace('const qs = new URLSearchParams(location.search);', 'const qs = new URLSearchParams('+JSON.stringify('?today='+today)+');');
+ frame.srcdoc=html;
+ frame.addEventListener('load',()=>URL.revokeObjectURL(url),{once:true});
+}
+
 if(!/^(localhost|127\.|\[::1\])/.test(location.hostname)){document.body.textContent='These checks are available on localhost only.'}else{
-frame.src='../index.html?fast';
-document.querySelector('#fresh').onclick=()=>{if(!/^(localhost|127\.)/.test(location.hostname))return;localStorage.setItem('robotfarm.v1','null');frame.src='../index.html?fast';result.textContent='Fresh local test started.'};
-document.querySelector('#baseline').onclick=async()=>{if(!/^(localhost|127\.)/.test(location.hostname))return;const r=await fetch('fixtures/played-v1.json');localStorage.setItem('robotfarm.v1',await r.text());frame.src='../index.html?fast';result.textContent='Played v1 fixture loaded.'};
+loadGame(true);
+document.querySelector('#fresh').onclick=()=>{if(!/^(localhost|127\.)/.test(location.hostname))return;localStorage.setItem('robotfarm.v1','null');loadGame(true);result.textContent='Fresh local test started.'};
+document.querySelector('#baseline').onclick=async()=>{if(!/^(localhost|127\.)/.test(location.hostname))return;const r=await fetch('fixtures/played-v1.json');localStorage.setItem('robotfarm.v1',await r.text());loadGame(true);result.textContent='Played v1 fixture loaded.'};
 document.querySelector('#gate').onclick=()=>{const gear=frame.contentDocument.querySelector('#gear');gear.dispatchEvent(new PointerEvent('pointerdown'));setTimeout(()=>gear.dispatchEvent(new PointerEvent('pointerup')),3500)};
 document.querySelector('#inspect').onclick=()=>{result.textContent=localStorage.getItem('robotfarm.v1')};
 document.querySelector('#wide').onclick=()=>{frame.style.width='1180px';frame.style.height='820px'};
 document.querySelector('#small').onclick=()=>{frame.style.width='1024px';frame.style.height='768px'};
-document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{frame.src='../index.html?fast&today='+b.dataset.day});
-document.querySelector('#sound').onclick=()=>{frame.src='../index.html'};
+document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{loadGame(true,b.dataset.day)});
+document.querySelector('#sound').onclick=()=>{loadGame(false)};
 document.querySelector('#decode').onclick=async()=>{
   const ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();
   const {SOUND_FILES}=await import('../sounds.js');
@@ -41,8 +52,7 @@ document.querySelector('#driveCheck').onclick=async()=>{
    doc.querySelector('.drive-roads').click();doc.querySelectorAll('.drive-road-card')[road].click();
    const deadline=Date.now()+90000;
    while(!doc.querySelector('.drive-finish-art')&&Date.now()<deadline){
-    const nums=n=>doc.querySelector(n).getAttribute('transform').match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi).map(Number);
-    const [x,y,a]=nums('.drive-tractor'),[tx,ty]=nums('.drive-marker');let error=Math.atan2(ty-y,tx-x)-(a-90)*Math.PI/180;
+    const {x,y,angle,target:[tx,ty]}=frame.contentWindow.routeProbe;let error=Math.atan2(ty-y,tx-x)-angle;
     error=Math.atan2(Math.sin(error),Math.cos(error));hold(Math.abs(error)<.12?'forward':error>0?'right':'left');await wait(100);
     result.textContent='Testing road '+(road+1)+': '+doc.querySelector('.drive-score b').textContent;
    }

@@ -3,12 +3,12 @@ window.mobileChecks = async () => {
  const result = window.parent.document.querySelector('#result'), lines=[];
  const log = s => { lines.push(s); result.textContent=lines.join('\n'); };
  const safe={top:0,left:0,right:0,bottom:0};
- const safeStyle=document.createElement('style');safeStyle.textContent=(await(await fetch('ui.css',{cache:'no-store'})).text()).replace(/env\(safe-area-inset-(top|right|bottom|left)\)/g,'var(--audit-safe-$1,0px)');document.head.append(safeStyle);
+ const safeStyle=document.createElement('style');safeStyle.textContent=((await(await fetch('ui.css',{cache:'no-store'})).text())+'\n'+(await(await fetch('adventure.css',{cache:'no-store'})).text())).replace(/env\(safe-area-inset-(top|right|bottom|left)\)/g,'var(--audit-safe-$1,0px)');document.head.append(safeStyle);
  const fit=(selector,min=72)=>{assert(document.querySelectorAll(selector).length>0,'Missing '+selector);for(const b of document.querySelectorAll(selector)){const r=b.getBoundingClientRect();assert(r.width>=min-.5&&r.height>=min-.5&&r.top>=safe.top-.5&&r.bottom<=innerHeight-safe.bottom+.5&&r.left>=safe.left-.5&&r.right<=innerWidth-safe.right+.5,selector+' does not fit '+innerWidth+'×'+innerHeight+': '+JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height}));}};
  for(const [width,height,top=0,left=0,bottom=0,right=0] of [[320,568],[568,320],[375,667],[667,375],[393,852],[844,390],[768,1024],[1024,768],[1180,820],[393,852,47,0,34,0],[844,390,0,47,21,47]]) {
   Object.assign(safe,{top,left,bottom,right});for(const [k,v] of Object.entries(safe))document.documentElement.style.setProperty('--audit-safe-'+k,v+'px');
   const f=window.parent.document.querySelector('iframe'); f.style.width=width+'px';f.style.height=height+'px';await new Promise(r=>setTimeout(r,80));
-  window.showFiveJobs();fit('#yardStart');fit('.yard-nav button');const playRect=$('#yardStart').getBoundingClientRect(),navRect=$('.yard-nav').getBoundingClientRect();assert(playRect.bottom+6<=navRect.top||playRect.right+6<=navRect.left,'job start overlaps navigation');
+  window.showFiveJobs();fit('#yardStart');fit('.yard-nav button');const playRect=$('#yardStart').getBoundingClientRect(),navRect=$('.yard-nav').getBoundingClientRect();assert(playRect.bottom+6<=navRect.top||playRect.right+6<=navRect.left,'job start overlaps navigation');const botRect=$('#bot').getBoundingClientRect();assert(botRect.width===0||botRect.right<=navRect.left||botRect.bottom<=navRect.top,'robot overlaps hub navigation');
   for(const type of ['hunt','pods','letters','twins','boss']){await startMission(type,1);await waitFor(ready);fit('#opts .opt');fit('#quit,#replay');$('#quit').click();}
   testState();await startMission('hunt',0);await waitFor(ready);await answerRight();await answerRight();correct().click();await waitFor(()=>M?.phase==='action'&&!$('#actionGo').disabled);fit('#actionGo,#quit');$('#quit').click();
   openReader(0);await waitFor(()=>document.querySelector('.reader-controls button')?.getBoundingClientRect().width>=71.9);fit('.reader-controls button');document.querySelector('[aria-label="Back to jobs"]').click();
@@ -65,4 +65,14 @@ window.reducedChecks=async()=>{
  window.matchMedia=query=>query.includes('prefers-reduced-motion')?{matches:true}:real.call(window,query);
  try{await window.showActionTest();assert(!document.querySelector('.machine-spark'),'reduced motion has no moving particles');$('#actionGo').click();await waitFor(ready);assert(!document.querySelector('.machine-spark'),'action stays motionless');$('#quit').click();window.parent.document.querySelector('#result').textContent='PASS: reduced-motion machine action, no particles, same answers and rewards.';}
  finally{window.matchMedia=real;style.remove();}
+};
+window.showRewardTest=async(type='hunt')=>{testState();await startMission(type,0);await waitFor(ready);M.m.golds=10;const done=finishMission();clearTimeout(rewardTimer);await done;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));await waitFor(()=>!document.querySelector('.adventure-reward').getAnimations().some(a=>a.playState==='running')); };
+window.rewardLayoutChecks=async()=>{
+ const result=window.parent.document.querySelector('#result'),lines=[];
+ for(const [w,h] of [[320,568],[568,320],[393,852],[844,390],[768,1024],[1024,768]]){
+  const f=window.parent.document.querySelector('iframe');f.style.width=w+'px';f.style.height=h+'px';await new Promise(r=>setTimeout(r,80));
+  for(const type of ['hunt','boss']){await window.showRewardTest(type);for(const b of document.querySelectorAll('.adventure-reward button')){const r=b.getBoundingClientRect();assert(r.width>=72&&r.height>=72&&r.top>=0&&r.bottom<=innerHeight,'Celebration controls outside '+w+'×'+h+' ('+type+'): '+JSON.stringify({x:r.x,y:r.y,w:r.width,h:r.height,vh:innerHeight}));}closeModal();}
+  lines.push(w+' × '+h+': standard and bonus celebrations fit, with 72px controls.');result.textContent=lines.join('\n');
+ }
+ result.textContent+='\nPASS: celebration layouts.';
 };

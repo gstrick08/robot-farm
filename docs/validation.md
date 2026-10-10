@@ -1,3 +1,5 @@
+Latest design verification: [Adventure integration report](adventure-validation.md).
+
 # Robot Farm — saved jobs and engaging equipment actions
 
 Verified 10 October 2026. The updated game is open at the existing local preview. The existing local save retained its visible seed count and completed daily jobs when loading the update. Disposable test saves were used only on separate ports 8011 and 8012.

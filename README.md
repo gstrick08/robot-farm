@@ -7,7 +7,7 @@ A kindergarten reading game for iPhone and iPad: Heart Words (sight words) and l
 - Progress stays on the device. Backup and restore are in the grown-up area.
 
 **Dev:** `python3 -m http.server`, then open `/?fast` (silent and quick). `?today=YYYY-MM-DD` fakes the date.
-**Checks:** `node tools/check.mjs`, `node tools/check-presentation.mjs`, `node tools/check-ui.mjs`, `node tools/check-driving.mjs`, `node tools/check-equipment.mjs`, `node tools/check-speech.mjs`
+**Checks:** `node tools/check.mjs`, `node tools/check-presentation.mjs`, `node tools/check-ui.mjs`, `node tools/check-driving.mjs`, `node tools/check-equipment.mjs`, `node tools/check-speech.mjs`, `node tools/check-job-progress.mjs`, `node tools/check-adventure.mjs`
 **Deploying:** bump `VERSION` in `sw.js` so installed copies update.
 
 Font: Andika by SIL International, under the SIL Open Font License (`fonts/OFL.txt`).
@@ -34,3 +34,5 @@ Saved-job follow-up: a job resumes its exact question, choice order, faded mista
 Every three correct/helped answers now opens a short, child-triggered machine action with a large button and capped star bursts. Actions give no extra currency, use no timers or penalties, and finish before the next spoken question. Reduced motion skips moving particles and machine motion. Completed jobs offer an optional original three-page mini reader drawn from familiar words; sound help reads a page only when tapped. Inspired by Hooked on Phonics' learn, practice, read and celebrate sequence, this adds reading practice, not a replacement phonics curriculum. No commercial book, character or curriculum text was copied. Recorded human narration still requires the voice/cost approval requested in the original brief.
 
 Additional check: `node tools/check-job-progress.mjs`. `tools/equipment-audit.html` includes pause/resume/reload, pending machine actions, original-reader and reduced-motion checks; run it only on a separate localhost origin with disposable test data.
+
+Adventure design: the approved original farm island is now the equipment hub and the three tractor roads. Canvas rendering draws the trailer from its independent towing position and angle, and skips stationary frames. Scene resolution is capped at 2× device pixel density. Equipment gets shaded orange paint, teal machinery and reflective glass; reading choices keep their existing font rules. The approved ten praise lines are selected by context (word/letter, helped answer, familiar item, response time). This does not change scoring. Offline cache version `robotfarm-6` includes the new artwork and theme. The recorded voice pack has not been installed or generated beyond the previously approved audition.

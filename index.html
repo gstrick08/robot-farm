@@ -187,6 +187,7 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 <link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="adventure.css">
 <link rel="preload" href="fonts/Fredoka-Latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/Andika-Regular.woff2" as="font" type="font/woff2" crossorigin>
 </head>
@@ -210,9 +211,9 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 </main>
 
 <main id="yard" class="screen">
-  <header class="yard-top"><h1>Corn to popcorn</h1><div id="yardCounts" class="yard-counts"></div></header>
+  <header class="yard-top"><h1>Robot Farm<span class="yard-subtitle">Your next farm adventure</span></h1><div id="yardCounts" class="yard-counts"></div></header>
   <div class="yard-layout"><aside><h2>Your equipment jobs</h2><div id="yardJobs"></div></aside>
-    <section class="yard-adventure"><h2 id="yardTitle"></h2><div id="yardScene" class="equipment-scene"></div><button id="yardStart" class="yard-start"></button></section>
+    <section class="yard-adventure"><h2 id="yardTitle"></h2><div id="yardScene" class="island-scene"><canvas id="yardIsland" aria-hidden="true"></canvas></div><button id="yardStart" class="yard-start"></button></section>
   </div>
   <nav class="yard-nav"><button id="yardFarm" class="round" aria-label="Visit the farm"></button><button id="yardDrive" class="round" aria-label="Drive a tractor and trailer"></button><button id="yardCoop" class="round" aria-label="Mission Control"></button></nav>
 </main>
@@ -262,6 +263,7 @@ import { art, robotArt } from './art.js';
 import { rankVoices, voiceQuality, audioPreferences, speechRate } from './presentation.js';
 import { sounds } from './sounds.js';
 import { createDriving } from './driving.js';
+import {farmWorld} from './adventure-world.js';
 import { JOBS, jobFor, equipmentProgress, jobIcon, createEquipment } from './equipment.js';
 
 const $ = s => document.querySelector(s);
@@ -645,6 +647,7 @@ $('#shopBtn').onclick = openShop;
 
 // Equipment jobs wrap the existing daily mission slots; they add no learning state.
 function dailyJob(n) { return jobFor(dayIndex(), S.settings.perDay, n); }
+const yardWorld = farmWorld($('#yardIsland'));
 function renderYard() {
   const missions = todaysMissions(), next = missions.findIndex((_, n) => !S.day.done.includes(n));
   const selected = next < 0 ? missions.length - 1 : next, job = dailyJob(selected);
@@ -660,7 +663,7 @@ function renderYard() {
   }));
   $('#yardTitle').textContent = next < 0 ? 'Our machines are ready!' : JOBS[job].name;
   const paused = next < 0 ? null : pausedJob(missions[next], next);
-  createEquipment($('#yardScene'), job, next < 0 ? 1 : paused ? equipmentProgress(paused.m) : 0);
+  yardWorld.resize();
   $('#yardStart').replaceChildren(art(next < 0 ? 'tractor' : 'play'), el('span', '', next < 0 ? 'Pick a road' : paused ? 'Resume our farm job' : 'Start our farm job'));
   $('#yardStart').onclick = () => next < 0 ? openRoads() : startMission(missions[next], next);
   $('#yardCounts').replaceChildren(...[['seed', S.seeds], ['coin', S.coins]].map(([name, value]) => {
@@ -682,7 +685,14 @@ function fontFor(keys) {
   if (!keys.some(L.isLetterKey)) return fontPick(WORD_FONTS);
   return fontPick(keys.some(k => 'Il'.includes(L.keyText(k))) ? LETTER_FONTS.slice(0, 3) : LETTER_FONTS);
 }
-const PRAISE = ['Yes!', 'You got it!', 'Great looking!', 'Super reading!', 'Awesome!', 'You looked carefully!', 'Nice one!'];
+function answerPraise(target, result, elapsed, known) {
+  if (result === 'silver') return pick(['You kept trying!', 'You figured it out!', 'You fixed it!']);
+  const lines = ['You got it!', 'You did it! Let’s keep going!', 'Look how much you’re learning!'];
+  if (!L.isLetterKey(target)) lines.push('You read that word!');
+  if (known) lines.push('You remembered that one!');
+  if (elapsed >= 3000) lines.push('Nice job looking closely!', 'You took your time!');
+  return pick(lines);
+}
 let M = null, qGen = 0;
 const jobContext = () => JSON.stringify([TODAY(), S.start, S.cur, S.settings.perDay, wordKeys()]);
 function pausedJob(type, n) { return jobSessions.find(j => j.context === jobContext() && j.type === type && j.n === n); }
@@ -790,7 +800,7 @@ async function drawQuestion(g) {
 
 async function tapOpt(b, k, target, g) {
   if (g !== qGen || b.disabled) return;
-  const quick = performance.now() - M.openedAt < 700;
+  const elapsed = performance.now() - M.openedAt, quick = elapsed < 700, known = L.isKnown(peek(target));
   const r = L.answer(M.m, k === target);
   lock();
   if (r === 'gold' || r === 'silver') {
@@ -808,7 +818,7 @@ async function tapOpt(b, k, target, g) {
     await sleep(400); // Finish the equipment action before the next spoken question.
     if (g !== qGen) return;
     if (record) { happy(); await say(`New record! ${record} in a row!`); }
-    else await say(r === 'gold' ? pick(PRAISE) : `Yes! That's ${speak(target)}. Say ${speak(target)}!`);
+    else await say(r === 'gold' ? answerPraise(target, r, elapsed, known) : `${answerPraise(target, r, elapsed, known)} That’s ${speak(target)}. Say ${speak(target)}!`);
     if (r === 'silver') await sleep(1200);
     if (g !== qGen) return;
     if ((M.m.golds + M.m.silvers) % 3 === 0 && !L.missionDone(M.m)) { M.phase = 'action'; save(); return actionBreak(g); }
@@ -820,7 +830,7 @@ async function tapOpt(b, k, target, g) {
   else $('#opts').querySelector(`[data-k="${CSS.escape(target)}"]`)?.classList.add('hint'); // 2nd miss: show which one
   M.question.wrong = [...document.querySelectorAll('#opts .faded')].map(b => b.dataset.k);
   M.question.hint = !!$('#opts .hint'); save();
-  await say((quick ? 'Eagle eyes! Look carefully. ' : 'Hmm, look again. ') + M.prompt);
+  await say((quick ? 'Look carefully. Try again. ' : 'Hmm, look again. ') + M.prompt);
   await speechIdle();
   if (g === qGen) unlock();
 }
@@ -930,7 +940,8 @@ async function finishMission() {
   sfx.win(); happy();
   const box = openModal('', true); sound?.scene('reward');
   const hero = el('div', 'equipment-reward'); createEquipment(hero, job, 1);
-  box.append(el('h2', 'job-complete-title', 'We did our farm job!'));
+  box.classList.add('adventure-reward');
+  const star = art('star'); star.classList.add('reward-star'); box.append(star, el('h2', 'job-complete-title', 'You did it!'));
   const count = el('div', 'reward-count'); if (m.golds) count.append(art('seed'), el('b', '', m.golds)); else count.append(art('star'));
   if (full) count.append(el('span', '', '+'), art('goldseed'), el('b', '', 1));
   box.append(hero, count);

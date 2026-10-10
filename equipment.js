@@ -17,6 +17,12 @@ export function jobIcon(job) {
 let sceneId = 0;
 export function createEquipment(container, job, progress = 0) {
   container.innerHTML = SCENES[job].replaceAll('equipment-soil', 'equipment-soil-' + ++sceneId);
+  const svg = container.firstElementChild, id = 'material-' + sceneId;
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = `<linearGradient id="${id}-paint" x2="0" y2="1"><stop stop-color="#ffdf83"/><stop offset=".55" stop-color="#f3a74b"/><stop offset="1" stop-color="#ce7134"/></linearGradient><linearGradient id="${id}-glass" x2="1" y2="1"><stop stop-color="#e2ffff"/><stop offset=".45" stop-color="#95e4e2"/><stop offset="1" stop-color="#3588a9"/></linearGradient><linearGradient id="${id}-metal" x2="0" y2="1"><stop stop-color="#b4f2e8"/><stop offset=".55" stop-color="#35b8be"/><stop offset="1" stop-color="#13849d"/></linearGradient>`;
+  svg.prepend(defs);
+  const materials = {'#a5cd78':'paint','#e7bd69':'paint','#ecd38c':'paint','#b7e6ed':'glass','#d6ece3':'glass','#a8cce4':'metal','#a6c784':'metal'};
+  svg.querySelectorAll('[fill]').forEach(node => { const material = materials[node.getAttribute('fill')]; if(material) node.setAttribute('fill',`url(#${id}-${material})`); });
   const machine = container.querySelector('.machine');
   const base = container.querySelector('.assembly-base');
   const bits = [...container.querySelectorAll('.equipment-bit')];
