@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION on every deploy so the iPad picks up the new game.
-const VERSION = 'robotfarm-3';
+const VERSION = 'robotfarm-4';
 const CORE = [
   './', 'index.html', 'logic.js', 'ui.css', 'art.js', 'presentation.js', 'sounds.js', 'driving.js', 'drive-math.js', 'equipment.js',
   'manifest.webmanifest', 'icon.png', 'fonts/Andika-Regular.woff2', 'fonts/Fredoka-Latin.woff2',

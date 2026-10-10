@@ -183,7 +183,7 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 @keyframes floatup { to { transform: translate(-50%, -70px); opacity: 0; } }
 .fly { position: fixed; font-size: 42px; margin: -21px 0 0 -21px; transition: transform .55s ease-in; z-index: 30; pointer-events: none; }
 .rotate { position: fixed; inset: 0; background: var(--sky); display: none; place-items: center; font-size: 110px; z-index: 50; }
-@media (orientation: portrait) and (max-width: 1100px) and (pointer: coarse) { .rotate { display: grid; } }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 <link rel="stylesheet" href="ui.css">
@@ -200,7 +200,7 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 
 <main id="farm" class="screen">
   <div class="hud"><span>🪙 <b id="coins">0</b></span><span>🌱 <b id="seeds">0</b></span><span>✨ <b id="gseeds">0</b></span><span id="medals" hidden>🏅 <b id="medalN">0</b>/6</span><span id="trophy" hidden>🏆</span></div>
-  <div id="grid" class="grid"></div>
+  <div class="farm-viewport"><div id="grid" class="grid"></div></div>
   <aside class="board">
     <div id="pods" class="pods"></div>
     <button id="rocket" class="pod" aria-label="Mission Control">🚀</button>
@@ -257,7 +257,7 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 <script type="module">
 import * as L from './logic.js';
 import { art, robotArt } from './art.js';
-import { rankVoices, voiceQuality, audioPreferences } from './presentation.js';
+import { rankVoices, voiceQuality, audioPreferences, speechRate } from './presentation.js';
 import { sounds } from './sounds.js';
 import { createDriving } from './driving.js';
 import { JOBS, jobFor, equipmentProgress, jobIcon, createEquipment } from './equipment.js';
@@ -286,7 +286,7 @@ function newFarm() {
 }
 const fresh = () => ({
   v: 1, start: TODAY(),
-  settings: { child: '', color: '', voice: '', rate: 0.85, perDay: 3 },
+  settings: { child: '', color: '', voice: '', rate: 0.95, perDay: 3 },
   lists: [{ words: [...L.LIST_1], say: {} }], cur: 0,
   items: {}, day: { date: TODAY(), done: [], coop: 0 }, log: {},
   coins: 0, seeds: 3, goldSeeds: 0, hat: '', placing: null, newBots: [], streak: 0, best: { streak: 0 },
@@ -351,7 +351,7 @@ function pickVoice() {
 
 if (synth) { pickVoice(); synth.onvoiceschanged = pickVoice; }
 let talkId = 0, currentSpeech = Promise.resolve();
-function say(text, previewURI = null) {
+function say(text, previewURI = null, previewRate = S.settings.rate) {
   console.debug('🤖', text);
   const id = ++talkId, bot = $('#bot');
   sound?.speech(true);
@@ -359,13 +359,15 @@ function say(text, previewURI = null) {
     let done = false, watchdog;
     const fin = () => { if (done) return; done = true; clearTimeout(watchdog); if (id === talkId) { bot.classList.remove('talk'); sound?.speech(false); } res(); };
     if (FAST || !synth) return setTimeout(fin, FAST ? 30 : 400 + text.length * 70);
-    watchdog = setTimeout(fin, 1500 + text.length * 90 / S.settings.rate); // iOS sometimes never fires onend
+    const rate = speechRate(previewRate);
+    watchdog = setTimeout(() => { if (id === talkId && synth.speaking) synth.cancel(); fin(); }, 1500 + text.length * 90 / rate); // iOS sometimes never fires onend
     synth.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const available = rankVoices(synth.getVoices());
+    if (previewURI === null) pickVoice();
     const selected = previewURI !== null ? available.find(v => v.voiceURI === previewURI) || available[0] : voice;
     if (selected) u.voice = selected;
-    u.lang = selected?.lang || 'en-US'; u.rate = S.settings.rate;
+    u.lang = selected?.lang || 'en-US'; u.rate = rate; u.pitch = 1;
     u.onend = u.onerror = fin;
     bot.classList.add('talk');
     synth.speak(u);
@@ -700,8 +702,8 @@ async function startMission(type, n) {
 
 function promptText(target) {
   const s = speak(target);
-  if (!L.isLetterKey(target)) return M.type === 'hunt' ? `Find the word: ${s}.` : `Find ${s}!`;
-  if (M.type !== 'twins') return `Find ${s}!`;
+  if (!L.isLetterKey(target)) return M.type === 'hunt' ? `Find the word. ${s}.` : `Find ${s}.`;
+  if (M.type !== 'twins') return `Find ${s}.`;
   return L.isUpper(L.keyText(target)) ? `This is little ${s}. Find big ${s}!` : `This is big ${s}. Find little ${s}!`;
 }
 const lock = () => { $('#opts').classList.add('locked'); $('#opts').querySelectorAll('.opt').forEach(b => { b.disabled = true; }); };
@@ -840,7 +842,7 @@ $('#replay').onclick = async () => {
 };
 
 // ---------- Mission Control: he reads out loud, a grown-up taps ----------
-let C = null;
+let C = null, coopGen = 0;
 function coopPick(keys) {
   const p = k => peek(k);
   const learning = L.shuffle(keys.filter(k => p(k).last && !L.isMastered(p(k))));
@@ -850,10 +852,10 @@ function coopPick(keys) {
 }
 async function startCoop(keys = null, after = null) {
   closeModal();
-  C = { seq: keys ? L.reshuffle(keys) : [...coopPick(L.LETTER_KEYS), ...coopPick(wordKeys())], i: 0, fuel: 0, helped: new Set(), after, placement: !!keys };
+  const session = C = { generation: ++coopGen, seq: keys ? L.reshuffle(keys) : [...coopPick(L.LETTER_KEYS), ...coopPick(wordKeys())], i: 0, fuel: 0, helped: new Set(), after, placement: !!keys };
   show('coop'); $('#ship').className = 'ship'; $('#fuel').style.transform = 'scaleY(0)'; putArt($('#card'), 'rocket'); $('#answer').textContent = '';
   await say(keys ? 'Placement check! Read each one to your grown-up.' : 'Mission Control! Read each one to your grown-up. Every one you read fuels the rocket!');
-  coopShow();
+  if (C === session) coopShow();
 }
 function coopShow() {
   if (!C) return;
@@ -867,6 +869,7 @@ function coopShow() {
 }
 document.querySelectorAll('.pstrip [data-r]').forEach(b => b.onclick = async () => {
   if (!C || C.busy || C.i >= C.seq.length) return;
+  const session = C;
   C.busy = true;
   const k = C.seq[C.i];
   let r = b.dataset.r;
@@ -884,21 +887,23 @@ document.querySelectorAll('.pstrip [data-r]').forEach(b => b.onclick = async () 
     C.fuel++; sfx.gold();
     $('#fuel').style.transform = `scaleY(${Math.min(1, C.fuel / C.seq.length)})`;
   }
+  if (C !== session) return;
   save();
-  if (!C) return;
   C.i++; C.busy = false; coopShow();
 });
 async function coopFinish() {
-  const after = C.after;
+  const after = C.after, generation = C.generation;
   C = null;
   if (!after) { S.day.coop++; logToday('c'); S.coins += 3; }
   save();
   $('#ship').classList.add('launch'); sfx.rocket(); happy(); rocketSmoke();
   await say(after ? 'All done! Great reading!' : 'Three, two, one, blast off! Great reading! You earned three coins.');
+  if (coopGen !== generation || C || document.body.dataset.screen !== 'coop') return;
   await celebrateBots();
+  if (coopGen !== generation || C || document.body.dataset.screen !== 'coop') return;
   after ? after() : goFarm();
 }
-$('#coopQuit').onclick = () => { const after = C?.after; C = null; synth?.cancel(); save(); after ? after() : goFarm(); };
+$('#coopQuit').onclick = () => { const after = C?.after; coopGen++; C = null; synth?.cancel(); save(); after ? after() : goFarm(); };
 
 // ---------- practice page: the teacher's shuffled-page format ----------
 function pageTest(keys, words) {
@@ -971,8 +976,9 @@ function renderParent(msg = '') {
   </section>
   <section><h2>Settings</h2>
     <label>Child's name (the robot says it)<input id="setChild" value="${esc(S.settings.child)}" autocomplete="off"></label>
+    <p class="hint">Automatic voice: ${esc(vs[0]?.name || 'Device default; installed voices have not appeared yet')} ${vs[0] ? '— ' + esc(voiceQuality(vs[0])) : ''}</p>
     <label>Voice<select id="setVoice"><option value="">Automatic</option>${vs.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === S.settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)}) — ${esc(voiceQuality(v))}</option>`).join('')}</select></label>
-    <p class="hint">Only voices reported by this browser appear here. On iPad, download an English Premium or Enhanced voice in Settings → Accessibility → Spoken Content (or the speech section) → Voices, then return and preview it. Siri voices may not be exposed to web pages.</p>
+    <p class="hint">Only installed English voices reported by this browser appear here; online voices are excluded. For a more natural voice on iPhone or iPad, open Settings → Accessibility → Read &amp; Speak (Spoken Content on older versions) → Voices and download an English Premium or Enhanced voice. Return here and preview it. Siri voices may not be exposed to web pages.</p>
     <details><summary>Preview English voices (${vs.length})</summary><div class="voice-list">${vs.map(v => `<div class="voice-row"><span>${esc(v.name)} (${esc(v.lang)})<small>${esc(voiceQuality(v))}</small></span><button data-act="previewVoice" data-voice="${esc(v.voiceURI)}" aria-label="Preview ${esc(v.name)}">▶ Preview</button></div>`).join('')}</div></details>
     <label><input id="setMusic" type="checkbox" ${audioPrefs.music ? 'checked' : ''}> Gentle farm music</label>
     <label>Music volume<input id="setMusicVol" type="range" min="0" max="0.5" step="0.01" value="${audioPrefs.volume}"></label>
@@ -983,7 +989,7 @@ function renderParent(msg = '') {
     <div class="btns"><button data-act="saveSettings">Save settings</button><button data-act="testVoice">🔊 Test voice</button><button data-act="testLetters">🔤 Hear all letter names</button></div>
   </section>
   <section><h2>Backup</h2>
-    <p class="hint">Progress lives only on this iPad. Save a backup every week or two (to Files or iCloud Drive).</p>
+    <p class="hint">Progress lives only on this device. Save a backup every week or two (to Files or iCloud Drive).</p>
     <div class="btns"><button data-act="backup">💾 Save backup</button><label class="file">📂 Restore backup<input type="file" id="restore" accept="application/json,.json" hidden></label><button data-act="reset" class="danger">Reset everything</button></div>
   </section>
   <section><h2>Mission Control tips</h2><ul>
@@ -993,7 +999,7 @@ function renderParent(msg = '') {
     <li>End on a win. If he's getting upset, stop. Tomorrow is another day.</li>
     <li>Run both <b>placement checks</b> once at the start so the game knows what he already knows.</li>
     <li>When every word shows 🤖 and the practice test is clean, the game says <b>READY TO TEST</b>. Send the teacher the note. When she says he passed, tap "🏅 Teacher says he passed" under Word lists. He gets a medal on the farm, and you add the next list.</li>
-    <li><b>iPad setup:</b> Safari → Share → Add to Home Screen. Settings → Accessibility → Spoken Content → Voices → English → download an "Enhanced" voice, then pick it above. Settings → Accessibility → Guided Access locks him into the game (triple-click the top button to start).</li>
+    <li><b>iPhone / iPad setup:</b> Safari → Share → Add to Home Screen. Download a Premium or Enhanced English voice using the settings path above, then preview and select it here. Settings → Accessibility → Guided Access locks him into the game (triple-click the top button to start).</li>
   </ul></section>`;
 }
 
@@ -1027,11 +1033,27 @@ async function saveBackup() {
   const a = el('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
+function validBackup(d) {
+  const obj = v => v && typeof v === 'object' && !Array.isArray(v);
+  const count = v => Number.isInteger(v) && v >= 0;
+  const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  return obj(d) && d.v === 1 && date(d.start) && obj(d.settings)
+    && typeof d.settings.child === 'string' && typeof d.settings.color === 'string'
+    && typeof d.settings.voice === 'string' && Number.isFinite(d.settings.rate)
+    && Number.isInteger(d.settings.perDay) && d.settings.perDay >= 2 && d.settings.perDay <= 5
+    && Array.isArray(d.lists) && d.lists.length > 0 && d.lists.every(l => obj(l) && Array.isArray(l.words) && l.words.every(w => typeof w === 'string') && obj(l.say))
+    && count(d.cur) && d.cur < d.lists.length && obj(d.items) && Object.values(d.items).every(it => obj(it) && Array.isArray(it.days) && it.days.every(date))
+    && obj(d.day) && date(d.day.date) && Array.isArray(d.day.done) && d.day.done.every(count) && count(d.day.coop)
+    && obj(d.log) && obj(d.best) && count(d.best.streak) && [d.coins,d.seeds,d.goldSeeds,d.streak].every(count)
+    && Array.isArray(d.newBots) && typeof d.hat === 'string' && (d.placing === null || !!THING[d.placing])
+    && Array.isArray(d.farm) && d.farm.length === 60 && d.farm.every(t => obj(t) && ['grass','soil','water'].includes(t.t)
+      && (!t.thing || !!THING[t.thing]) && (!t.crop || (obj(t.crop) && !!CROPS[t.crop.kind] && date(t.crop.planted))));
+}
 function restoreBackup(file) {
   file?.text().then(t => {
     const d = JSON.parse(t);
-    if (d?.v !== 1 || !d.items || !d.farm) throw new Error('not a backup');
-    if (!confirm('Replace the progress on this iPad with this backup?')) return;
+    if (!validBackup(d)) throw new Error('not a backup');
+    if (!confirm('Replace the progress on this device with this backup?')) return;
     S = d; save(); location.reload();
   }).catch(() => alert('That file is not a Robot Farm backup.'));
 }
@@ -1069,11 +1091,11 @@ const ACT = {
     try { localStorage.setItem(AUDIO_KEY, JSON.stringify(audioPrefs)); } catch {}
     sound?.update(); save(); pickVoice(); renderParent('Settings saved.');
   },
-  testVoice: () => say('Hi, friend. Ready to read? Find the word: like.', $('#setVoice').value),
-  previewVoice: b => say('Hi, friend. Ready to read? Find the word: like.', b.dataset.voice),
+  testVoice: () => say('Hi, friend. Ready to read? Find the word: like.', $('#setVoice').value, +$('#setRate').value),
+  previewVoice: b => say('Hi, friend. Ready to read? Find the word: like.', b.dataset.voice, +$('#setRate').value),
   testLetters: () => say(L.ABC.map(L.letterName).join(', ')),
   backup: saveBackup,
-  reset: () => { if (confirm('Erase ALL progress on this iPad?') && confirm('Really erase everything? This cannot be undone.')) { localStorage.removeItem(KEY); location.reload(); } },
+  reset: () => { if (confirm('Erase ALL progress on this device?') && confirm('Really erase everything? This cannot be undone.')) { localStorage.removeItem(KEY); location.reload(); } },
 };
 $('#parentBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) ACT[b.dataset.act](b); };
 $('#parentBody').onchange = e => {
@@ -1091,6 +1113,7 @@ document.addEventListener('visibilitychange', () => {
   ac?.resume().catch(() => {});
   rollDay();
   if (document.body.dataset.screen === 'farm') renderFarm();
+  if (document.body.dataset.screen === 'yard') renderYard();
 });
 function countTo(node, value) {
   if (node.dataset.target === String(value)) return;

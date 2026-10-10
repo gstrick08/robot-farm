@@ -221,3 +221,165 @@ body[data-screen="yard"] .bot { animation: none; }
 .job-complete-title { font: 28px Fredoka, sans-serif; margin: 0; }
 @media(max-height:760px) { .yard-layout { padding-top: 12px; } .yard-job { min-height: 76px; } #yardJobs { gap: 10px; } .yard-adventure h2 { font-size: 27px; } #jobScene > svg { height: 160px; } #mission .opts { padding-bottom: 55px; } }
 @media(prefers-reduced-motion:reduce) { .equipment-travel, .equipment-bit, .assembly-base, .equipment-growth { transition: none; } }
+
+.farm-viewport { flex-shrink: 0; }
+@supports(height:100dvh) { .screen { height: 100dvh; bottom: auto; } }
+/* Phones and portrait tablets keep large controls; the farm pans instead of shrinking its tiles. */
+@media(max-width:900px), (max-height:500px) {
+  .logo { font-size: clamp(54px,11vw,82px); }
+  #start { gap: 22px; }
+  .play { width: 130px; height: 130px; }
+  .colors { flex-wrap: wrap; justify-content: center; gap: 14px; max-width: 360px; }
+  .swatch { width: 90px; height: 90px; }
+  #yard { overflow-y: auto; padding: calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); }
+  .yard-top { display: block; min-height: 90px; padding-right: 78px; }
+  .yard-top h1 { font-size: 25px; }
+  .yard-counts { margin-top: 9px; font-size: 20px; gap: 8px; }
+  .yard-counts span { padding: 4px 9px; }
+  .yard-counts .art { width: 24px; height: 24px; }
+  .yard-layout { display: flex; flex-direction: column; gap: 16px; padding-top: 10px; flex: none; }
+  .yard-layout h2 { font-size: 19px; margin-bottom: 8px; }
+  #yardJobs { display: flex; overflow-x: auto; gap: 10px; padding: 2px 2px 7px; }
+  .yard-job { flex: 0 0 122px; min-height: 80px; font-size: 15px; gap: 6px; padding: 8px; }
+  .yard-job .art { width: 36px; height: 36px; }
+  .yard-job.done > .art:last-child { width: 18px; height: 18px; }
+  .yard-adventure { flex-shrink: 0; }
+  .yard-adventure h2 { font-size: 23px; }
+  .equipment-scene { padding: 6px; border-radius: 22px; }
+  .equipment-scene > svg { max-height: 170px; }
+  .yard-start { min-height: 72px; margin-top: 12px; font-size: 22px; }
+  .yard-nav { position: fixed; left: auto; right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); gap: 12px; }
+  body[data-screen="yard"] .bot { width: 72px; }
+  body[data-screen="yard"] .bot > .hero { width: 72px; height: 84px; }
+  .mtop { padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left)); gap: 8px; min-height: 88px; flex-shrink: 0; }
+  .mtop > .round { flex-shrink: 0; }
+  .bag { min-width: 0; flex-shrink: 1; gap: 3px; padding: 9px 6px; box-shadow: 0 3px 0 var(--shadow); }
+  .bag i { flex: 1 1 12px; min-width: 0; width: 12px; height: 20px; }
+  .bag .art { width: 12px; height: 17px; }
+  .mission-equipment { width: calc(100% - 24px); }
+  .mission-equipment h2 { font-size: 16px; top: 9px; left: 12px; padding: 5px 10px; }
+  #jobScene > svg { height: 108px; }
+  #mission .opts { width: calc(100% - 32px); grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; padding: 10px 0 68px; }
+  #mission .opts[data-count="3"] { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #mission .opt, #mission .opts.grid .opt, #mission .opts.pods .opt, #mission .opts.blocks .opt { min-height: 72px; padding: 6px; font-size: clamp(28px,8vw,48px); }
+  #mission .opts.blocks .opt { font-size: 54px; }
+  #mission .prompt.teach { font-size: clamp(55px,14vw,100px); padding: 8px 14px; max-width: calc(100% - 24px); }
+  #mission .prompt.twin { font-size: 56px; margin-top: 8px; padding: 2px 28px 6px; }
+  #mission .glitch { top: 105px; right: 20px; width: 52px; height: 48px; }
+  #mission .glitch .art { width: 52px; height: 48px; }
+  body[data-screen="mission"] .bot { width: 56px; bottom: calc(2px + env(safe-area-inset-bottom)); left: 12px; }
+  body[data-screen="mission"] .bot > .hero { width: 56px; height: 65px; }
+  body[data-screen="mission"] .bot .hat { left: 10px; width: 38px; height: 30px; top: -5px; }
+  body[data-screen="mission"] .bot .hat .art { width: 38px; height: 30px; }
+  #farm { padding: calc(90px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(116px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); flex-direction: column; gap: 0; }
+  .farm-viewport { width: 100%; flex: 1; min-height: 0; overflow: auto; padding: 4px 4px 24px; touch-action: pan-x pan-y; }
+  #grid { width: 812px; min-width: 812px; margin: 0; }
+  .hud { left: calc(12px + env(safe-area-inset-left)); right: calc(94px + env(safe-area-inset-right)); transform: none; top: calc(12px + env(safe-area-inset-top)); gap: 6px; flex-wrap: wrap; font-size: 16px; }
+  .hud > span { min-height: 36px; padding: 3px 7px; border-width: 2px; border-radius: 14px; gap: 4px; }
+  .hud .art { width: 23px; height: 23px; }
+  .board { position: absolute; left: calc(12px + env(safe-area-inset-left)); right: calc(12px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); width: auto; display: flex; flex-direction: row; justify-content: flex-start; overflow-x: auto; gap: 12px; padding: 8px; border-radius: 22px; }
+  .board > .pods { display: contents; }
+  .board .pod { flex-shrink: 0; }
+  #driveBtn { width: 110px; }
+  #driveBtn .art { width: 43px; height: 46px; }
+  body[data-screen="farm"] .bot { display: none; }
+  .mbox { padding: 18px 14px; max-height: calc(100dvh - 24px); max-width: calc(100vw - 24px); }
+  .row { gap: 8px; flex-wrap: wrap; }
+  .choice { width: 72px; height: 72px; font-size: 40px; }
+  .choice .art { width: 53px; height: 53px; }
+  .shop { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+  .shop-item { min-width: 82px; height: 96px; }
+  .shop-item .e .art { width: 45px; height: 45px; }
+  .reward-count { font-size: 30px; gap: 8px; padding: 10px; }
+  .reward-count .art { width: 42px; height: 42px; }
+  .equipment-reward svg { max-height: 130px; }
+  .job-complete-title { font-size: 23px; }
+  .play.small { width: 72px; height: 72px; border-radius: 22px; margin-top: 12px; }
+  .play.small .art { width: 52px; height: 52px; }
+  .bigcard { min-width: 0; max-width: calc(100% - 32px); margin-top: 22px; padding: 16px; font-size: clamp(56px,15vw,110px); overflow-wrap: anywhere; }
+  .ctitle { font-size: 20px; }
+  .fuel { right: 22px; top: auto; bottom: 144px; width: 28px; height: 150px; }
+  .ship { right: 8px; top: auto; bottom: 304px; }
+  .ship .art { width: 54px; height: 54px; }
+  .pstrip { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  .answer { grid-column: 1 / -1; padding: 0; font-size: 14px; }
+  .bar3 { grid-column: 1 / -1; width: 100%; }
+  .pstrip button { padding: 0 6px; font-size: 14px; min-height: 48px; }
+  body[data-screen="coop"] .bot { width: 72px; bottom: 124px; }
+  body[data-screen="coop"] .bot > .hero { width: 72px; height: 84px; }
+  .phead { padding: 8px; gap: 6px; font-size: 13px; }
+  .phead button { padding: 10px; min-height: 44px; }
+  .page, .page.letters { grid-template-columns: repeat(3,minmax(0,1fr)); padding: 16px; gap: 10px; font-size: 28px; }
+  .page.letters { grid-template-columns: repeat(5,minmax(0,1fr)); font-size: 32px; }
+  .pw { min-height: 48px; }
+  .pwrap { padding: 0 12px 60px; }
+  .pwrap section { padding: 12px; }
+  .voice-row { flex-wrap: wrap; }
+  .drive-top { top: calc(10px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); right: calc(12px + env(safe-area-inset-right)); gap: 10px; }
+  .drive-top > .round { flex-shrink: 0; }
+  .drive-top h1 { min-width: 0; font-size: clamp(20px,6vw,24px); }
+  .drive-top .drive-score { position: absolute; right: 0; top: 84px; font-size: 20px; padding: 4px 8px; }
+  .drive-score .art { width: 27px; height: 27px; }
+  .drive-controls { right: 50%; transform: translateX(50%); bottom: calc(12px + env(safe-area-inset-bottom)); grid-template-columns: 72px 72px; gap: 10px; }
+  .drive-controls button { width: 72px; height: 72px; border-radius: 20px; }
+  .drive-controls [data-drive="forward"], .drive-controls [data-drive="reverse"] { grid-column: auto; }
+  .drive-world { inset: calc(116px + env(safe-area-inset-top)) 0 calc(178px + env(safe-area-inset-bottom)); }
+  .drive-menu { inset: calc(96px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); padding: 14px; gap: 18px; border-radius: 24px; }
+  .drive-menu h2 { font-size: 28px; }
+  .drive-road-cards { width: 100%; gap: 10px; }
+  .drive-road-card { width: auto; flex: 1; min-width: 72px; height: 150px; border-radius: 18px; }
+  .drive-road-card svg { height: 110px; }
+  .drive-road-card span { font-size: 22px; }
+  .drive-finish-art { width: 90px; height: 90px; }
+}
+@media(max-height:500px) {
+  #start { flex-direction: row; gap: 35px; }
+  .colors { max-width: 420px; }
+  #yard { padding-top: calc(4px + env(safe-area-inset-top)); padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .yard-top { min-height: 72px; display: flex; }
+  .yard-counts { margin-top: 0; }
+  .yard-layout { display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 14px; flex: 1; min-height: 0; padding-top: 4px; }
+  .yard-layout aside { overflow-y: auto; padding-bottom: 8px; }
+  .yard-layout aside > h2, .yard-adventure > h2 { display: none; }
+  #yardJobs { display: grid; gap: 8px; overflow: visible; }
+  .yard-adventure { justify-content: center; }
+  .yard-adventure .equipment-scene > svg { max-height: 70px; }
+  .yard-start { margin-top: 8px; }
+  .yard-nav { gap: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); }
+  body[data-screen="yard"] .bot, body[data-screen="mission"] .bot, body[data-screen="coop"] .bot { display: none; }
+  #jobScene > svg { height: 58px; }
+  .mission-equipment h2 { font-size: 14px; top: 7px; padding: 4px 8px; }
+  #mission .opts { width: calc(100% - 48px - env(safe-area-inset-left) - env(safe-area-inset-right)); grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; padding: 6px 0 calc(10px + env(safe-area-inset-bottom)); }
+  #mission .opts[data-count="3"] { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  #mission .opt, #mission .opts.grid .opt, #mission .opts.pods .opt, #mission .opts.blocks .opt { font-size: 32px; }
+  #mission .opts.blocks .opt { font-size: 44px; }
+  #mission .prompt.teach { font-size: 54px; margin-top: 4px; }
+  #mission .prompt.twin { font-size: 40px; margin-top: 4px; padding: 0 24px 4px; }
+  #mission .glitch { top: 96px; }
+  #farm { padding-top: calc(82px + env(safe-area-inset-top)); padding-bottom: calc(116px + env(safe-area-inset-bottom)); }
+  .bigcard { margin-top: 4px; font-size: 64px; padding: 8px 18px; }
+  .pstrip { display: flex; gap: 8px; }
+  .answer { padding: 0; font-size: 13px; }
+  .bar3 { width: 55px; }
+  .fuel { bottom: 80px; right: 26px; height: 100px; }
+  .ship { bottom: 190px; }
+  .equipment-reward svg { max-height: 90px; }
+  .drive-controls { right: calc(12px + env(safe-area-inset-right)); transform: none; }
+  .drive-world { inset: calc(88px + env(safe-area-inset-top)) calc(190px + env(safe-area-inset-right)) 0 env(safe-area-inset-left); }
+  .drive-top .drive-score { top: 80px; }
+  .drive-menu { flex-direction: row; }
+  .drive-road-card { height: 118px; }
+  .drive-road-card svg { height: 82px; }
+}
+/* Empty prompts reserve no space; short phones keep every answer reachable. */
+#mission .prompt:empty { display: none; }
+@media (max-height: 360px) {
+  #jobScene > svg { height: 20px; }
+  .mission-equipment h2 { font-size: 12px; top: 4px; padding: 3px 6px; }
+  #mission:has(.prompt.twin) .mission-equipment { display: none; }
+  #mission .prompt.twin { font-size: 24px; }
+}
+@media (max-width: 600px) and (min-height: 501px) and (max-height: 600px) {
+  .yard-layout { gap: 8px; }
+  .yard-start { margin-top: 8px; }
+}

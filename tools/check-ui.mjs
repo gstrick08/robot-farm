@@ -10,7 +10,7 @@ const functionSource = name => {
 };
 let blob, reloads = 0, notices = [], exportedName;
 const context = vm.createContext({
-  S: structuredClone(fixture), L, TODAY: () => '2026-10-09', navigator: {}, Blob, File,
+  THING: Object.fromEntries(['chicken','pig','sheep','cow','horse','soil','flower','tree','rock','brick','wood','water','house','tractor','cap','tophat','crown','ship'].map(k=>[k,{}])), CROPS: {carrot:1,corn:1,strawberry:1,pumpkin:1}, S: structuredClone(fixture), L, TODAY: () => '2026-10-09', navigator: {}, Blob, File,
   URL: { createObjectURL: b => { blob = b; return 'blob:local-test'; }, revokeObjectURL() {} },
   el: () => ({ click() { exportedName = this.download; } }), setTimeout() {},
   confirm: () => true, alert: text => notices.push(text),
@@ -19,7 +19,7 @@ const context = vm.createContext({
 vm.runInContext(`const listKeys = l => l.words.map(w => 'W:' + w);
 const peek = k => S.items[k] || L.newItem();
 const status = it => L.isMastered(it) ? 'mastered' : L.isKnown(it) ? 'known' : it.last ? 'learning' : 'new';
-${['saveBackup','restoreBackup','report'].map(functionSource).join('\n')}`, context);
+${['saveBackup','validBackup','restoreBackup','report'].map(functionSource).join('\n')}`, context);
 await context.saveBackup();
 assert.equal(exportedName, 'robot-farm-backup-2026-10-09.json');
 assert.deepEqual(JSON.parse(await blob.text()), fixture, 'export contains all v1 progress');
@@ -32,6 +32,10 @@ context.restoreBackup({ text: async () => JSON.stringify({ ...fixture, coins: 99
 assert.equal(context.S.coins, fixture.coins, 'cancelled restore changes nothing');
 context.restoreBackup({ text: async () => '{}' }); await new Promise(setImmediate);
 assert.equal(notices.length, 1); assert.equal(reloads, 1);
+for (const bad of [{v:1,items:{},farm:[]},{...fixture,farm:[]},{...fixture,coins:-1},{...fixture,lists:null},{...fixture,farm:fixture.farm.map(t=>({...t,crop:{kind:'invalid',planted:'2026-10-09'}}))}]) {
+ assert.equal(context.validBackup(bad), false, 'malformed saves cannot replace progress');
+}
+assert.equal(context.validBackup(fixture), true);
 const report = context.report();
 assert.match(report, /Heart Words List 1: 0 of 17 words mastered/);
 assert.match(report, /Letters: 0 of 52 known, 0 mastered/);

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { rankVoices, voiceQuality, musicAllowed, audioPreferences } from '../presentation.js';
+import { rankVoices, voiceQuality, musicAllowed, audioPreferences, speechRate } from '../presentation.js';
 import { sounds, SOUND_FILES } from '../sounds.js';
 import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
@@ -45,7 +45,7 @@ console.log('Presentation checks passed ✔');
 // Exercise the service worker install: every required local asset must be precached.
 const events = {}, cached = [];
 const worker = { self: { addEventListener: (type, fn) => events[type] = fn, skipWaiting() {} },
-  caches: { open: async name => ({ addAll: async paths => { assert.equal(name, 'robotfarm-3'); cached.push(...paths); } }) },
+  caches: { open: async name => ({ addAll: async paths => { assert.equal(name, 'robotfarm-4'); cached.push(...paths); } }) },
 };
 vm.runInNewContext(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), worker);
 let installed; events.install({ waitUntil: p => installed = p }); await installed;
@@ -53,3 +53,7 @@ for (const asset of cached.filter(p => p !== './')) assert.ok(existsSync(new URL
 for (const name of SOUND_FILES) assert.ok(cached.includes('audio/' + name + '.m4a'));
 for (const asset of ['ui.css', 'art.js', 'presentation.js', 'sounds.js', 'driving.js', 'drive-math.js', 'equipment.js', 'fonts/Fredoka-Latin.woff2']) assert.ok(cached.includes(asset));
 console.log('Offline asset checks passed ✔');
+
+assert.equal(speechRate(NaN), .95); assert.equal(speechRate(.85), .85); assert.equal(speechRate(5), 1.1);
+const local=[{name:'Fred',lang:'en-US',voiceURI:'fred',localService:true},{name:'Ava',lang:'en-US',voiceURI:'com.apple.voice.premium.ava',localService:true},{name:'Google English',lang:'en-US',voiceURI:'remote',localService:false}];
+assert.deepEqual(rankVoices(local).map(v=>v.voiceURI),['com.apple.voice.premium.ava','fred']);

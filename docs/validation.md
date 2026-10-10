@@ -24,9 +24,9 @@ Baseline: `1bf061b80170d2f7dcdcc4d5c550415548823253`. Branch: `visual-upgrade`. 
 - No error was identified in the game sources. The automation console intermittently reports a MutationObserver observer error with no source URL; the application does not use MutationObserver. A clean native Safari console check is required before claiming strict zero-console acceptance.
 - The default .85 speech speed was preserved. Successful browser speech execution and locking are verified; subjective voice warmth and pronunciation need listening on the intended iPad.
 
-## Preserved behaviors needing separate approval
+## Earlier inherited behavior
 
-Repeated Mission Control sessions retain the original coin rewards; the parent pronunciation preview retains list order; adding more than six lists remains possible; backup validation retains its existing minimal checks. Changing these would affect existing behavior and was excluded from visual polish.
+Repeated Mission Control sessions retain the original coin rewards; the parent pronunciation preview retains list order; adding more than six lists remains possible; backup validation originally retained minimal checks; the phone/tablet follow-up below now rejects malformed restores. Changing these would affect existing behavior and was excluded from visual polish.
 
 The voice-pack proposal remains in the local design audit: family recordings, a chosen neural TTS service after terms/account approval, or system-voice recordings only after verifying public distribution rights. No voice files, isolated phonemes, paid service, library or new learning rule were added.
 
@@ -55,3 +55,29 @@ A direct non-fast session at port 8006 preserved its existing progress on reload
 The final worker was installed on port 8008, the server was stopped, and the direct game reloaded. The job hub and popcorn reading mission, including its machinery SVG and choices, worked without network service. No console errors occurred in that offline game.
 
 Native iPad speech quality, measured 60fps, home-screen worker update and multi-touch driving still require real-device acceptance. Parent reading/assessment functions were unchanged in this follow-up; their earlier checks and the backup/restore/report Node checks remain the evidence for those flows.
+
+## End-to-end, speech and phone/tablet follow-up
+
+All six Node checks pass, including actual speech orchestration with browser stubs (saved and unsaved preview rate, late-loaded quality voices, explicit parent selection, pitch, stuck-speech recovery). Inline-module syntax and diff whitespace checks pass. `logic.js` remains byte-identical to the baseline; the learning save key/schema and existing progress are preserved. Offline version is now `robotfarm-4`.
+
+On isolated localhost port 8009, the generated equipment harness passed fresh start/color selection; harvesting and normal/golden planting; shop price, second-tap purchase and saved placement; incorrect/correct parent gate answers; modeled re-ask and forced slow rating; quit/restart during modeled speech; teacher shuffled practice and READY TO TEST; teacher pass and 1/6 medal; custom lists and pronunciation; saved settings; all 52 placement letters; new-item teaching before choices; and full Mission Control with its original three coins. The five mission integration tests also passed misses/hints, silver/no gold-bag fill, equipment action, ten-gold completion, 15-silver cap, exact rewards, quit and v1 fixture preservation.
+
+The responsive matrix passes 320×568, 568×320, 375×667, 667×375, 393×852, 844×390, 768×1024, 1024×768 and 1180×820. Added simulated safe-area cases pass at 393×852 (top 47/bottom 34) and 844×390 (left/right 47/bottom 21). These are CSS simulations, not device emulation. Five reading layouts, job start/navigation without overlap, road cards, driving navigation and controls fit; required touch targets are at least 72px. Phone/tablet screenshots are saved alongside earlier screenshots.
+
+The actual driving harness completed all three roads with held pointer controls: Barn loop 3/3, Orchard bends 3/3 and River bridge 3/3. Learning save remained exactly unchanged. All eleven AAC files decoded. A direct non-fast game replay disabled every answer while speech ran. Its existing nine seeds and zero coins remained intact.
+
+With the v4 worker installed, the isolated server was stopped. A direct game reloaded at phone size, displayed a reading mission and loaded River bridge offline. No console errors appeared in the final browser runs. Development failures were fixed before the passing runs.
+
+Fixed issues: a phone farm toolbar covering the field; forced portrait rotation screen; clipped choices on short landscape phones; shrinking Back/Replay and driving navigation targets; job/nav overlap on small phones; road menu spacing around notches; unsaved speed ignored in voice previews; stale Mission Control callbacks affecting a new session; incomplete backup files replacing progress; and stale daily hub after return from background. Backup export/restore/report use actual functions in Node; native iOS sharing/file-picker UI was not exercised.
+
+Automatic speech now ranks local quality voices by name and voice URI, deprioritizes novelty voices including Fred, refreshes after late voice availability, and uses neutral pitch with calmer punctuation. New installations default to 0.95 speed. Existing saved rates/voices are preserved. This Mac exposes standard Samantha as its best available voice; no Premium/Enhanced voice was exposed, so subjective improvement on Apple hardware cannot be certified here. The parent panel provides current voice download guidance.
+
+Remaining inherited behavior: repeated parent-gated Mission Control completions each award three coins; adding more than six word lists is still possible. These are outside this presentation/device change, and are reported rather than silently changing reward/curriculum rules.
+
+Physical iPhone/iPad Safari acceptance remains: first-tap audio, voice warmth/pronunciation, actual notch/browser-bar behavior, multi-touch/drag feel, frame rate, background interruptions, native sharing/restore and Add to Home Screen/offline worker update. The desktop viewport and CSS safe-area checks do not certify those device behaviors. No main-branch push, merge or production deployment occurred.
+
+### Final resumed checks — 10 October 2026
+
+After the interruption, the phone farm toolbar was found to retain its earlier column direction, covering the field. It now forms a horizontally scrolling row at the bottom, with enough separation in short landscape screens. The layout harness now explicitly visits the farm at every size, verifies that the toolbar leaves the field visible, checks all 60 tiles and their 72px minimum size, and repeats the previous reading/road/safe-area checks. All eleven cases pass on fresh port 8010. The current preview retains its existing nine seeds and zero coins across the next-day reload. Its job rotation reflects the new day. The local preview server was restarted after the interrupted session.
+
+The resumed complete-flow and five-mission browser suites also pass, with no console errors. The final v4 cache was installed on port 8010; after stopping the server, the phone-size game reloaded with the corrected farm toolbar (row, 88px inner height), displayed reading choices and opened River bridge. This verifies the final CSS is present offline.
