@@ -57,3 +57,18 @@ body{color:var(--ink)}
 .adventure-reward .play.small{display:inline-grid}
 .equipment-scene{border-color:#fff;box-shadow:0 6px 0 #71a5b52b}.mission-equipment h2{border-color:#fff}
 @media(max-width:360px){body[data-screen="yard"] .bot{display:none}}
+
+/* Grown-up controls remain scrollable on phones and tablets. */
+.settings-nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+.settings-nav a { display:flex; align-items:center; min-height:44px; padding:8px 14px; border-radius:16px; background:#d9f4ee; color:#164c50; font-weight:bold; }
+#parentBody section { scroll-margin-top:20px; }
+#parentBody input:not([type=checkbox]):not([type=radio]):not([type=range]), #parentBody select, #parentBody textarea { max-width:100%; box-sizing:border-box; min-height:44px; }
+.letter-focus { display:grid; grid-template-columns:repeat(auto-fit,minmax(82px,1fr)); gap:8px; padding:12px; border:2px solid #badbd2; border-radius:18px; }
+#parentBody .letter-focus label { display:flex; align-items:center; gap:8px; margin:0; min-height:44px; padding:4px; background:#eef7ed; border-radius:10px; cursor:pointer; }
+body.calm *, body.calm *::before, body.calm *::after { animation:none !important; transition:none !important; }
+#parentBody button, #parentBody .file, #parentBack { min-height:44px; }
+#parentBody .swatch { width:44px; height:44px; }
+#parentBody label:has(input[type=checkbox]) { min-height:44px; display:flex; align-items:center; gap:8px; }
+@media (prefers-reduced-motion:no-preference) {
+  body.calm .bar3.go i { transition:transform 3s linear !important; }
+}

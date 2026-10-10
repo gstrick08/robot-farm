@@ -45,7 +45,7 @@ console.log('Presentation checks passed ✔');
 // Exercise the service worker install: every required local asset must be precached.
 const events = {}, cached = [];
 const worker = { self: { addEventListener: (type, fn) => events[type] = fn, skipWaiting() {} },
-  caches: { open: async name => ({ addAll: async paths => { assert.equal(name, 'robotfarm-6'); cached.push(...paths); } }) },
+  caches: { open: async name => ({ addAll: async paths => { assert.equal(name, 'robotfarm-8'); cached.push(...paths); } }) },
 };
 vm.runInNewContext(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), worker);
 let installed; events.install({ waitUntil: p => installed = p }); await installed;

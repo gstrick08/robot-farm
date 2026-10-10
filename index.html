@@ -247,17 +247,18 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 <main id="drive" class="screen"></main>
 
 <main id="parent" class="screen"><div class="pwrap">
-  <div class="phead2"><h1>Grown-up area</h1><button id="parentBack">Back to the game</button></div>
+  <div class="phead2"><h1>Grown-up settings</h1><button id="parentBack">Back to the game</button></div>
   <div id="parentBody"></div>
 </div></main>
 
 <div id="bot" class="bot" aria-hidden="true"><span class="hat"></span><div class="head"><i></i><i></i><b></b></div><div class="body"></div></div>
-<button id="gear" class="gear" aria-label="Grown-ups: hold for 3 seconds">⚙️</button>
+<button id="gear" class="gear" aria-label="Grown-up settings: hold for 3 seconds or press Enter">⚙️</button>
 <div id="modal" class="modal" hidden></div>
 <div class="rotate">📱↪️</div>
 
 <script type="module">
 import * as L from './logic.js';
+import { PREF_KEY, ALPHABET, preferences, validPreferences, focusedLetters, focusContext } from './preferences.js';
 import { readProgress, writeProgress, validJobs } from './job-progress.js';
 import { art, robotArt } from './art.js';
 import { rankVoices, voiceQuality, audioPreferences, speechRate } from './presentation.js';
@@ -296,10 +297,16 @@ const fresh = () => ({
   coins: 0, seeds: 3, goldSeeds: 0, hat: '', placing: null, newBots: [], streak: 0, best: { streak: 0 },
   farm: newFarm(),
 });
+let parentPrefs = preferences(null);
+try { parentPrefs = preferences(JSON.parse(localStorage.getItem(PREF_KEY))); } catch {}
+const focusKeys = () => focusedLetters(parentPrefs);
+const reducedMotion = () => parentPrefs.calm || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const applyPreferences = () => document.body.classList.toggle('calm', parentPrefs.calm);
+applyPreferences();
 let S = fresh(), jobSessions = [];
 const stored = readProgress(localStorage, KEY); jobSessions = stored.jobs;
 try { const s = JSON.parse(stored.raw); if (s?.v === 1) S = { ...fresh(), ...s, settings: { ...fresh().settings, ...s.settings } }; } catch {}
-const save = () => { try { checkpoint(); writeProgress(localStorage, KEY, S, jobSessions); } catch (e) { console.warn('save failed', e); } };
+const save = () => { try { checkpoint(); writeProgress(localStorage, KEY, S, jobSessions); return true; } catch (e) { console.warn('save failed', e); return false; } };
 
 const item = k => (S.items[k] ||= L.newItem());
 const peek = k => S.items[k] || L.newItem();
@@ -332,7 +339,7 @@ function tone(notes, dur = 0.12, type = 'sine', vol = 0.12) {
     t += dur * 0.8;
   }
 }
-function effect(name, fallback) { if (!sound?.play(name)) fallback(); }
+function effect(name, fallback) { if (parentPrefs.effects && !sound?.play(name)) fallback(); }
 const sfx = {
   pop: () => effect('tap', () => tone([660, 880], .08, 'triangle', .07)),
   gold: () => effect('gold', () => tone([523, 659, 1047], .11)),
@@ -535,7 +542,7 @@ function wanderBots() {
     if (open.length) {
       const to = pick(open); botAt.delete(from); botAt.set(to, k); renderFarm();
       const node = $('#grid').children[to].querySelector('.mini'), cell = $('#grid').children[to].getBoundingClientRect();
-      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (!reducedMotion()) {
         node.style.transform = `translate(${((from % 10) - (to % 10)) * cell.width}px, ${(Math.floor(from / 10) - Math.floor(to / 10)) * cell.height}px)`;
         node.style.transition = 'transform 1.2s ease-in-out';
         requestAnimationFrame(() => requestAnimationFrame(() => { node.style.transform = ''; }));
@@ -694,20 +701,19 @@ function answerPraise(target, result, elapsed, known) {
   return pick(lines);
 }
 let M = null, qGen = 0;
-const jobContext = () => JSON.stringify([TODAY(), S.start, S.cur, S.settings.perDay, wordKeys()]);
-function pausedJob(type, n) { return jobSessions.find(j => j.context === jobContext() && j.type === type && j.n === n); }
+const jobContext = type => focusContext(type, JSON.stringify([TODAY(), S.start, S.cur, S.settings.perDay, wordKeys()]), parentPrefs);
+function pausedJob(type, n) { return jobSessions.find(j => j.context === jobContext(type) && j.type === type && j.n === n); }
 function checkpoint() {
-  const context = jobContext();
   // Rotating daily jobs must still bank any gold earned before the browser closed.
-  for (const j of jobSessions.filter(j => j.context !== context)) {
+  for (const j of jobSessions.filter(j => j.context !== jobContext(j.type))) {
     if (M?.phase && M.n === j.n && M.type === j.type) payJobSeeds();
     else S.seeds += j.m.golds - j.paidGold;
   }
-  jobSessions = jobSessions.filter(j => j.context === context && !S.day.done.includes(j.n));
+  jobSessions = jobSessions.filter(j => j.context === jobContext(j.type) && !S.day.done.includes(j.n));
   if (!M?.phase) return;
   const { type, n, job, m, ease, phase, question, paidGold } = M;
   jobSessions = jobSessions.filter(j => j.n !== n);
-  jobSessions.push(structuredClone({ context: jobContext(), type, n, job, m, ease, phase, question, paidGold }));
+  jobSessions.push(structuredClone({ context: jobContext(type), type, n, job, m, ease, phase, question, paidGold }));
 }
 function payJobSeeds() {
   S.seeds += M.m.golds - M.paidGold;
@@ -721,7 +727,7 @@ async function startMission(type, n) {
   if (type === 'boss') queue = L.buildQueue([], L.shuffle([...words, ...L.LETTER_KEYS].filter(k => L.isKnown(peek(k)))), L.CAP + 2);
   else {
     const isL = type === 'letters' || type === 'twins';
-    const { focus, known } = L.pickFocus(isL ? L.LETTER_KEYS : listKeys(curList()), isL ? L.LETTER_KEYS : words, S.items);
+    const { focus, known } = L.pickFocus(isL ? focusKeys() : listKeys(curList()), isL ? focusKeys() : words, S.items);
     queue = L.buildQueue(focus, known, L.CAP + 2);
   }
   const paused = pausedJob(type, n);
@@ -733,7 +739,7 @@ async function startMission(type, n) {
   $('#prompt').className = 'prompt'; $('#prompt').textContent = ''; $('#opts').replaceChildren();
   $('#glitch').hidden = type !== 'boss'; $('#glitch').style.transform = '';
   const g = ++qGen;
-  await say(paused ? 'Welcome back! Let’s finish our farm job.' : JOBS[M.job].intro + ' ' + MISSION[type].intro);
+  await say(paused ? `Welcome back, ${S.settings.child || 'friend'}! Let’s finish our farm job.` : `Let’s go, ${S.settings.child || 'friend'}! ` + JOBS[M.job].intro + ' ' + MISSION[type].intro);
   if (g !== qGen) return;
   if (M.phase === 'question') return drawQuestion(g);
   if (M.phase === 'action') return actionBreak(g);
@@ -837,7 +843,7 @@ async function tapOpt(b, k, target, g) {
 
 // Action happens between questions, so the listening screen stays still.
 function machineBurst(big = false) {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (reducedMotion()) return;
   const scene = $('#jobScene');
   for (let i = 0; i < (big ? 12 : 6); i++) {
     const spark = el('i', 'machine-spark', ['★','✦','●'][i % 3]);
@@ -870,7 +876,7 @@ async function actionBreak(g) {
     go.disabled = true; M.phase = 'advance'; save();
     machineBurst(true); sfx.harvest();
     const machine = $('#jobScene .equipment-travel');
-    const motion = matchMedia('(prefers-reduced-motion: reduce)').matches ? null : machine?.animate([
+    const motion = reducedMotion() ? null : machine?.animate([
       { transform: 'translateX(0)' }, { transform: 'translateX(35px) translateY(-8px)' }, { transform: 'translateX(0)' }
     ], { duration: FAST ? 75 : 750, easing: 'ease-in-out' });
     await sleep(800);
@@ -977,7 +983,7 @@ function coopPick(keys) {
 }
 async function startCoop(keys = null, after = null) {
   closeModal();
-  const session = C = { generation: ++coopGen, seq: keys ? L.reshuffle(keys) : [...coopPick(L.LETTER_KEYS), ...coopPick(wordKeys())], i: 0, fuel: 0, helped: new Set(), after, placement: !!keys };
+  const session = C = { generation: ++coopGen, seq: keys ? L.reshuffle(keys) : [...coopPick(focusKeys()), ...coopPick(wordKeys())], i: 0, fuel: 0, helped: new Set(), after, placement: !!keys };
   show('coop'); $('#ship').className = 'ship'; $('#fuel').style.transform = 'scaleY(0)'; putArt($('#card'), 'rocket'); $('#answer').textContent = '';
   await say(keys ? 'Placement check! Read each one to your grown-up.' : 'Mission Control! Read each one to your grown-up. Every one you read fuels the rocket!');
   if (C === session) coopShow();
@@ -1066,6 +1072,7 @@ const gear = $('#gear');
 gear.onpointerdown = () => { gear.classList.add('holding'); holdT = setTimeout(() => { gear.classList.remove('holding'); gate(() => openParent()); }, FAST ? 300 : 3000); };
 gear.onpointerup = gear.onpointerleave = gear.onpointercancel = () => { clearTimeout(holdT); gear.classList.remove('holding'); };
 gear.oncontextmenu = e => e.preventDefault();
+gear.onclick = e => { if (e.detail === 0) gate(() => openParent()); }; // Keyboard activation still requires the grown-up question.
 
 // ---------- grown-up area ----------
 function openParent(msg = '') { closeModal(); show('parent'); renderParent(msg); }
@@ -1076,7 +1083,13 @@ function renderParent(msg = '') {
   const vs = rankVoices(synth?.getVoices() || []);
   const list = curList();
   $('#parentBody').innerHTML = `
-  ${msg ? `<div class="banner">${esc(msg)}</div>` : ''}
+  ${msg ? `<div class="banner" role="status">${esc(msg)}</div>` : ''}
+  <nav class="settings-nav" aria-label="Settings sections"><a href="#childSettings">Child</a><a href="#wordSettings">Words</a><a href="#letterSettings">Letters</a><a href="#playSettings">Play &amp; sound</a><a href="#backupSettings">Backup</a></nav>
+  <section id="childSettings"><h2>Your child</h2>
+    <label>Child's name (the robot says it)<input id="setChild" value="${esc(S.settings.child)}" maxlength="30" autocomplete="off" placeholder="e.g. Alex"></label>
+    <p class="hint">Leave blank to use “friend.” The name and learning progress stay on this device.</p>
+    <div class="btns"><button data-act="saveSettings">Save settings</button><button data-act="testVoice">🔊 Preview greeting</button></div>
+  </section>
   <section><h2>Today</h2>
     <p>Missions ${S.day.done.length}/${todaysMissions().length} · Mission Control ${S.day.coop ? '✓ done' : 'not yet'} · Days played ${Object.keys(S.log).length} · Best gold streak ${S.best.streak}</p>
     <div class="btns"><button data-act="coop">🚀 Start Mission Control</button><button data-act="report">📤 Share progress report</button></div>
@@ -1086,21 +1099,29 @@ function renderParent(msg = '') {
     <p class="hint"><span class="chip">new</span><span class="chip learning">learning</span><span class="chip known">known</span><span class="chip mastered">mastered 🤖</span> Mastered = right on 3 different days, including an instant read-aloud to you.</p>
     <div class="btns"><button data-act="pageWords">📄 Practice test (shuffled page)</button><button data-act="placeWords">🧭 Word placement check</button><button data-act="testWords">🔊 Hear each word</button></div>
   </section>
-  <section><h2>Letters</h2>
+  <section id="letterSettings"><h2>Letter focus</h2>
+    <p class="hint">Choose the letters to practice in letter jobs and Mission Control. Other letters can still appear as answer choices. Matching jobs show both cases to teach the pair. Full alphabet progress and placement stay below.</p>
+    <fieldset class="letter-focus"><legend>Letters to practice (choose at least one)</legend>${[...ALPHABET].map(c => `<label><input type="checkbox" name="focusLetter" value="${c}" ${parentPrefs.letters.includes(c) ? 'checked' : ''}> ${c} ${c.toLowerCase()}</label>`).join('')}</fieldset>
+    <div class="btns"><button data-act="allLetters">Select all</button><button data-act="clearLetters">Clear selection</button></div>
+    <label>Target letter case<select id="setCase"><option value="both" ${parentPrefs.case === 'both' ? 'selected' : ''}>Big and little letters</option><option value="upper" ${parentPrefs.case === 'upper' ? 'selected' : ''}>Big letters (A B C)</option><option value="lower" ${parentPrefs.case === 'lower' ? 'selected' : ''}>Little letters (a b c)</option></select></label>
+    <p class="hint">Save changes before practicing. Changing focus restarts unfinished letter jobs and keeps earned seeds. Word jobs stay saved.</p>
+    <div class="btns"><button data-act="saveSettings">Save settings</button><button data-act="pageFocus">📄 Focused letter page</button><button data-act="hearFocus">🔊 Hear focused letters</button></div>
+    <h3>All alphabet progress</h3>
     <div class="letters">${L.LETTER_KEYS.filter((_, i) => i % 2 === 0).map(chip).join('')}</div>
     <div class="letters">${L.LETTER_KEYS.filter((_, i) => i % 2 === 1).map(chip).join('')}</div>
     <div class="btns"><button data-act="pageLetters">📄 Letter page</button><button data-act="placeLetters">🧭 Letter placement check</button></div>
   </section>
-  <section><h2>Word lists</h2>
-    <p class="hint">Type the teacher's words separated by commas, then save. If the voice says a word wrong, add what it should sound like, e.g. <code>read=reed</code>. Never drill the list in order. The game shuffles it every time.</p>
+  <section id="wordSettings"><h2>Add words &amp; word lists</h2>
+    <p class="hint">Type the teacher's words separated by commas or new lines, then save. If the voice says a word wrong, add what it should sound like, e.g. <code>read=reed</code>. Never drill the list in order. The game shuffles it every time.</p>
     ${S.lists.map((l, i) => `<div class="list">
       <label><input type="radio" name="cur" value="${i}" ${i === S.cur ? 'checked' : ''}> List ${i + 1}${i === S.cur ? ' (current)' : ''}</label>
-      <textarea data-list="${i}" rows="2">${esc(l.words.map(w => l.say?.[w] ? `${w}=${l.say[w]}` : w).join(', '))}</textarea>
+      <textarea aria-label="Words for list ${i + 1}" data-list="${i}" rows="3">${esc(l.words.map(w => l.say?.[w] ? `${w}=${l.say[w]}` : w).join(', '))}</textarea>
       <div class="btns"><button data-act="saveList" data-i="${i}">Save list ${i + 1}</button>${!l.words.length ? '' : l.passed ? `<span class="badge">🏅 Passed ${esc(l.passed)}</span>` : `<button data-act="passed" data-i="${i}">🏅 Teacher says he passed</button>`}</div></div>`).join('')}
     <div class="btns"><button data-act="addList">➕ Add the next list</button></div>
   </section>
-  <section><h2>Settings</h2>
-    <label>Child's name (the robot says it)<input id="setChild" value="${esc(S.settings.child)}" autocomplete="off"></label>
+  <section id="playSettings"><h2>Play &amp; sound</h2>
+    <label><input id="setCalm" type="checkbox" ${parentPrefs.calm ? 'checked' : ''}> Calmer visuals (fewer moving effects)</label>
+    <label><input id="setEffects" type="checkbox" ${parentPrefs.effects ? 'checked' : ''}> Sound effects</label>
     <p class="hint">Automatic voice: ${esc(vs[0]?.name || 'Device default; installed voices have not appeared yet')} ${vs[0] ? '— ' + esc(voiceQuality(vs[0])) : ''}</p>
     <label>Voice<select id="setVoice"><option value="">Automatic</option>${vs.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === S.settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)}) — ${esc(voiceQuality(v))}</option>`).join('')}</select></label>
     <p class="hint">Only installed English voices reported by this browser appear here; online voices are excluded. For a more natural voice on iPhone or iPad, open Settings → Accessibility → Read &amp; Speak (Spoken Content on older versions) → Voices and download an English Premium or Enhanced voice. Return here and preview it. Siri voices may not be exposed to web pages.</p>
@@ -1113,7 +1134,7 @@ function renderParent(msg = '') {
     <label>Robot color<br>${COLORS.map(c => `<button class="swatch" data-act="color" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('')}</label>
     <div class="btns"><button data-act="saveSettings">Save settings</button><button data-act="testVoice">🔊 Test voice</button><button data-act="testLetters">🔤 Hear all letter names</button></div>
   </section>
-  <section><h2>Backup</h2>
+  <section id="backupSettings"><h2>Backup</h2>
     <p class="hint">Progress lives only on this device. Save a backup every week or two (to Files or iCloud Drive).</p>
     <div class="btns"><button data-act="backup">💾 Save backup</button><label class="file">📂 Restore backup<input type="file" id="restore" accept="application/json,.json" hidden></label><button data-act="reset" class="danger">Reset everything</button></div>
   </section>
@@ -1152,7 +1173,8 @@ async function shareReport() {
   try { await navigator.clipboard.writeText(text); renderParent('Report copied. Paste it into a message or note.'); } catch { prompt('Copy this report:', text); }
 }
 async function saveBackup() {
-  const name = `robot-farm-backup-${TODAY()}.json`, blob = new Blob([JSON.stringify(jobSessions.length ? { ...S, jobSessions } : S)], { type: 'application/json' });
+  const data = { ...S, ...(jobSessions.length ? { jobSessions } : {}), ...(JSON.stringify(parentPrefs) !== JSON.stringify(preferences(null)) ? { parentPreferences: parentPrefs } : {}) };
+  const name = `robot-farm-backup-${TODAY()}.json`, blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const file = new File([blob], name, { type: 'application/json' });
   if (navigator.canShare?.({ files: [file] })) { try { return await navigator.share({ files: [file] }); } catch (e) { if (e.name === 'AbortError') return; } }
   const a = el('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
@@ -1177,8 +1199,11 @@ function validBackup(d) {
 function restoreBackup(file) {
   file?.text().then(t => {
     const d = JSON.parse(t);
-    if (!validBackup(d) || (d.jobSessions !== undefined && !validJobs(d.jobSessions))) throw new Error('not a backup');
+    if (!validBackup(d) || (d.jobSessions !== undefined && !validJobs(d.jobSessions)) || (d.parentPreferences !== undefined && !validPreferences(d.parentPreferences))) throw new Error('not a backup');
     if (!confirm('Replace the progress on this device with this backup?')) return;
+    const restoredPrefs = preferences(d.parentPreferences);
+    localStorage.setItem(PREF_KEY, JSON.stringify(restoredPrefs));
+    parentPrefs = restoredPrefs; delete d.parentPreferences;
     jobSessions = d.jobSessions || []; delete d.jobSessions; M = null; S = d; save(); location.reload();
   }).catch(() => alert('That file is not a Robot Farm backup.'));
 }
@@ -1187,6 +1212,10 @@ const ACT = {
   coop: () => startCoop(),
   report: shareReport,
   pageWords: () => pageTest(listKeys(curList()), true),
+  allLetters: () => document.querySelectorAll('[name=focusLetter]').forEach(b => b.checked = true),
+  clearLetters: () => document.querySelectorAll('[name=focusLetter]').forEach(b => b.checked = false),
+  pageFocus: () => pageTest(focusKeys(), false),
+  hearFocus: async () => { for (const k of focusKeys()) { if (document.body.dataset.screen !== 'parent') return; await say(`${caseWord(k)} ${speak(k)}.`); } },
   pageLetters: () => pageTest(L.LETTER_KEYS, false),
   placeWords: () => startCoop(listKeys(curList()), () => openParent('Word placement done. The game now knows where to start.')),
   placeLetters: () => startCoop(L.LETTER_KEYS, () => openParent('Letter placement done. The game now knows where to start.')),
@@ -1208,19 +1237,26 @@ const ACT = {
   addList: () => { S.lists.push({ words: [], say: {} }); save(); renderParent('Added a list. Type its words, save it, then mark it current.'); },
   color: b => { S.settings.color = b.dataset.c; save(); applyLook(); },
   saveSettings: () => {
+    const letters = [...document.querySelectorAll('[name=focusLetter]:checked')].map(b => b.value);
+    if (!letters.length) return alert('Choose at least one letter to practice.');
+    const nextPrefs = preferences({ letters, case: $('#setCase').value, calm: $('#setCalm').checked, effects: $('#setEffects').checked });
+    try { localStorage.setItem(PREF_KEY, JSON.stringify(nextPrefs)); } catch { return alert('Settings could not be saved. Check available device storage and try again.'); }
+    parentPrefs = nextPrefs; applyPreferences();
     S.settings.child = $('#setChild').value.trim().slice(0, 30);
     S.settings.voice = $('#setVoice').value;
     S.settings.rate = +$('#setRate').value;
     S.settings.perDay = +$('#setPerDay').value;
     audioPrefs.music = $('#setMusic').checked; audioPrefs.volume = +$('#setMusicVol').value;
-    try { localStorage.setItem(AUDIO_KEY, JSON.stringify(audioPrefs)); } catch {}
-    sound?.update(); save(); pickVoice(); renderParent('Settings saved.');
+    let audioSaved = true;
+    try { localStorage.setItem(AUDIO_KEY, JSON.stringify(audioPrefs)); } catch { audioSaved = false; }
+    sound?.update(); const progressSaved = save(); pickVoice();
+    renderParent(audioSaved && progressSaved ? 'Settings saved.' : 'Some settings could not be saved. Check device storage and try again.');
   },
-  testVoice: () => say('Hi, friend. Ready to read? Find the word: like.', $('#setVoice').value, +$('#setRate').value),
-  previewVoice: b => say('Hi, friend. Ready to read? Find the word: like.', b.dataset.voice, +$('#setRate').value),
+  testVoice: () => say(`Hi, ${$('#setChild').value.trim().slice(0,30) || 'friend'}! Ready to read? Find the word: like.`, $('#setVoice').value, +$('#setRate').value),
+  previewVoice: b => say(`Hi, ${$('#setChild').value.trim().slice(0,30) || 'friend'}! Ready to read? Find the word: like.`, b.dataset.voice, +$('#setRate').value),
   testLetters: () => say(L.ABC.map(L.letterName).join(', ')),
   backup: saveBackup,
-  reset: () => { if (confirm('Erase ALL progress on this device?') && confirm('Really erase everything? This cannot be undone.')) { localStorage.removeItem(KEY); location.reload(); } },
+  reset: () => { if (confirm('Erase ALL progress on this device?') && confirm('Really erase everything? This cannot be undone.')) { localStorage.removeItem(KEY); localStorage.removeItem(PREF_KEY); localStorage.removeItem(AUDIO_KEY); localStorage.removeItem('robotfarm.jobs.v1'); location.reload(); } },
 };
 $('#parentBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) ACT[b.dataset.act](b); };
 $('#parentBody').onchange = e => {
@@ -1244,7 +1280,7 @@ function countTo(node, value) {
   if (node.dataset.target === String(value)) return;
   cancelAnimationFrame(node.counterFrame); node.dataset.target = value;
   const from = +node.textContent || 0;
-  if (FAST || matchMedia('(prefers-reduced-motion: reduce)').matches) { node.textContent = value; return; }
+  if (FAST || reducedMotion()) { node.textContent = value; return; }
   const start = performance.now();
   const tick = now => {
     const p = Math.min(1, (now - start) / 300); node.textContent = Math.round(from + (value - from) * p);
@@ -1254,7 +1290,7 @@ function countTo(node, value) {
 }
 function rocketSmoke() {
   document.querySelectorAll('.smoke').forEach(p => p.remove());
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (reducedMotion()) return;
   const r = $('#ship').getBoundingClientRect();
   for (let i = 0; i < 6; i++) {
     const p = el('i', 'smoke'); p.style.left = r.left + r.width / 2 - 12 + (i % 3 - 1) * 18 + 'px'; p.style.top = r.bottom + i * 12 + 'px';
@@ -1264,7 +1300,7 @@ function rocketSmoke() {
 function curious() { const b = $('#bot'); b.classList.remove('thinking'); void b.offsetWidth; b.classList.add('thinking'); }
 function confetti() {
   document.querySelectorAll('.confetti').forEach(p => p.remove());
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (reducedMotion()) return;
   for (let i = 0; i < 16; i++) {
     const p = el('i', 'confetti'); p.style.left = 20 + Math.random() * 60 + '%'; p.style.top = 20 + Math.random() * 35 + '%';
     p.style.background = ['#e9c468', '#8cbdb9', '#9eba7a'][i % 3]; document.body.append(p); setTimeout(() => p.remove(), 1400);

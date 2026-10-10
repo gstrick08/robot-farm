@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {preferences,validPreferences,focusedLetters,focusContext} from '../preferences.js';
+import {LETTER_KEYS} from '../logic.js';
+assert.deepEqual(focusedLetters(null),LETTER_KEYS,'old saves retain all 52 targets');
+assert.deepEqual(focusedLetters({letters:['B','A','A','?'],case:'lower'}),['L:a','L:b']);
+assert.deepEqual(focusedLetters({letters:['B'],case:'upper'}),['L:B']);
+assert.deepEqual(focusedLetters({letters:[],case:'invalid'}),LETTER_KEYS,'damaged preferences cannot create an empty mission');
+assert.equal(validPreferences(preferences(null)),true);
+for(const p of [null,{}, {letters:['AB'],case:'both',calm:false,effects:true}, {letters:['A','A'],case:'both',calm:false,effects:true}, {letters:[''],case:'both',calm:false,effects:true}]) assert.ok(!validPreferences(p));
+const p=preferences({letters:['A'],case:'both',calm:true,effects:false});
+assert.equal(focusContext('hunt','old',p),'old','word checkpoints keep original context');
+assert.equal(focusContext('letters','old',null),'old','default letter checkpoints remain compatible');
+assert.notEqual(focusContext('twins','old',p),'old');
+assert.equal(focusContext('letters','old',p),focusContext('letters','old',{...p,calm:false,effects:true}),'visual/audio preferences do not reset jobs');
+console.log('Letter focus and preference validation passed ✔');

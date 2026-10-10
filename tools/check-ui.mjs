@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import * as L from '../logic.js';
+import { preferences, validPreferences, PREF_KEY, focusContext } from '../preferences.js';
 import {validJobs} from '../job-progress.js';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const fixture = JSON.parse(readFileSync(new URL('fixtures/played-v1.json', import.meta.url)));
@@ -11,6 +12,7 @@ const functionSource = name => {
 };
 let blob, reloads = 0, notices = [], exportedName;
 const context = vm.createContext({
+  parentPrefs: preferences(null), preferences, validPreferences, PREF_KEY, localStorage: {setItem() {}},
   THING: Object.fromEntries(['chicken','pig','sheep','cow','horse','soil','flower','tree','rock','brick','wood','water','house','tractor','cap','tophat','crown','ship'].map(k=>[k,{}])), CROPS: {carrot:1,corn:1,strawberry:1,pumpkin:1}, S: structuredClone(fixture), jobSessions: [], M: null, validJobs, structuredClone, jobContext:()=> 'test', L, TODAY: () => '2026-10-09', navigator: {}, Blob, File,
   URL: { createObjectURL: b => { blob = b; return 'blob:local-test'; }, revokeObjectURL() {} },
   el: () => ({ click() { exportedName = this.download; } }), setTimeout() {},
@@ -48,6 +50,22 @@ context.restoreBackup({text:async()=>JSON.stringify({...withJobs,jobSessions:[{b
 context.jobSessions=[{...savedJob,m:{...m,golds:2,asked:2},paidGold:1}];context.jobContext=()=> 'next-day';
 const oldSeeds=context.S.seeds;context.checkpoint();assert.equal(context.S.seeds,oldSeeds+1,'expired daily job banks only unpaid earned gold');
 context.checkpoint();assert.equal(context.S.seeds,oldSeeds+1,'expired job never banks twice');
+context.parentPrefs=preferences({letters:['A','B'],case:'lower',calm:true,effects:false});
+await context.saveBackup();const withPrefs=JSON.parse(await blob.text());
+assert.deepEqual(withPrefs.parentPreferences,context.parentPrefs,'backup includes custom preferences');
+context.restoreBackup({text:async()=>JSON.stringify(withPrefs)});await new Promise(setImmediate);
+assert.equal('parentPreferences' in context.S,false,'preferences do not change root progress shape');
+assert.deepEqual(context.parentPrefs,preferences(withPrefs.parentPreferences));
+const previous=structuredClone(context.S);
+context.restoreBackup({text:async()=>JSON.stringify({...withPrefs,parentPreferences:{letters:[]}})});await new Promise(setImmediate);
+assert.deepEqual(JSON.parse(JSON.stringify(context.S)),previous,'invalid preferences cannot overwrite progress');
+context.S.day.done=[];
+context.jobContext=type=>focusContext(type,'test',context.parentPrefs);
+context.jobSessions=[{...savedJob,type:'letters',m:{...m,golds:2,asked:2},paidGold:1},savedJob];
+const focusSeeds=context.S.seeds;context.checkpoint();
+assert.equal(context.S.seeds,focusSeeds+1,'focus changes bank unpaid letter gold');
+assert.deepEqual(context.jobSessions,[savedJob],'word checkpoint survives focus change');
+context.checkpoint();assert.equal(context.S.seeds,focusSeeds+1,'focus changes never pay twice');
 const report = context.report();
 assert.match(report, /Heart Words List 1: 0 of 17 words mastered/);
 assert.match(report, /Letters: 0 of 52 known, 0 mastered/);
