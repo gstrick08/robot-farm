@@ -1,50 +1,19 @@
-# Helena narration — audition ready
+# Helena narration — integration status (10 October 2026)
 
-The device's standard voice remains audible. Choosing its best installed English voice cannot guarantee human-sounding narration, especially across iPhone and iPad models. The approved eight-line Helena audition has been generated for 2 credits. It is available in this chat’s audio preview. No narration files have been committed, and the game still uses its existing device voice.
+The approved audition is now connected to game narration, together with the completed trailer/farm batch. Twenty complete recordings (about 634 KB of AAC audio) play locally. Grown-up settings offer **Hear Helena**, recorded narration with device fallback, and an explicit automatic device-voice option. Saved device-voice selections remain respected.
 
-The original brief states: “This is a proposal: you need my OK before generating or committing any audio.” It also requires approval before a paid/online service or API key is used.
+The finalized seven-batch script was quoted at **20 credits**. Batches 4 and 5 completed (5.8 quoted credits); batches 1 and 6 were rejected for provider rate limiting, and batches 2 and 3 for insufficient credits. Batch 7 was not submitted after that failure. The account reported 2.2 credits remaining. The five remaining batches cost 14.2 credits at the current quotes, so another 12 credits are needed. No failed batch was blindly resubmitted; no subscription or credit purchase was made.
 
-Selected narrator: Helena, using the preset chosen in the voice picker.
+Batch 4 supplies twelve complete trailer/farm lines. The eight previously approved audition lines are reused. Batch 5's compound/fragments recording is saved locally outside the repository and awaits reliable splitting/review before installation. The full voice pack is incomplete: most words, letter names and job instructions still use device speech. No child's name, custom list or progress was sent to the generation provider.
 
-The user approved the online cost quote and the 2-credit audition. Generation completed successfully on 10 October 2026. The audition contains only the eight game lines below, without child names or personal information. Full game narration has not been generated or installed.
+Playback goes through the game's existing awaited `say()` flow. Matching uses complete words and preserves unknown text for device speech, including pronunciation overrides. Recording failure and autoplay rejection fall back to device narration. New prompts, leaving a screen, backgrounding and page exit cancel narration and settle waiting promises. Pitch is preserved when the talking-speed setting changes. Both speech paths have recovery timers, and music remains quiet during narration. Recorded files are included in the offline cache.
 
-Available routes:
+Audio provenance: Helena preset `3c2b83c0-2e0a-5ae8-998a-a5fe71b7eccd`, Seed Audio, speech rate -5. Audition job `2c88bf1c-1e77-4df5-b104-e9b50cb0c7da`; trailer/farm job `7543ec05-588a-4095-8a18-a9926f60a26f`. Clip boundaries and source filenames are recorded in `narration-clips.js`. These are AI-generated recordings. Provider output-use permission is described in [Higgsfield Terms, section 4.4](https://higgsfield.ai/terms-of-use-agreement); this is not a guarantee of exclusive copyright.
 
-| Route | What happens next | Tradeoff |
-| --- | --- | --- |
-| AI narrator | Choose a warm adult English voice in the voice picker; review a cost quote for an eight-line audition before approving generation. | Consistent voice; generation uses an online provider and may consume credits. Public redistribution terms must be verified before committing files. |
-| Parent recording | Add an on-device recorder page and read the same script in your own voice. | Free and personal; you record each take and approve which recordings belong in the public game. |
+The approved ten praise lines remain unchanged and “Eagle eyes” stays removed. Future lists cannot be recorded until their actual words are known. No isolated phonemes or exported Apple system-voice recordings are included.
 
-Proposed audition script, with no child names or personal information:
+The local review page is `tools/narration-audit.html`: each installed line can be heard beside its script. Final listening/pronunciation approval and physical iPhone/iPad Safari playback remain pending.
 
-1. Welcome back! Let's finish our farm job.
-2. Find the word. Like.
-3. This word is see. Say see!
-4. You got it!
-5. Let's boost our tractor! Tap the big button.
-6. Time to lift our cargo! Tap the big button.
-7. Your turn! Try reading this page. Tap the sound button for help.
-8. Great reading! Back to our jobs.
+## Verification
 
-Delivery: warm, relaxed, conversational; clear target words; no character imitation or baby talk. Preserve existing phonetic letter-name spellings. Do not generate isolated phoneme sounds.
-
-After approval and a satisfactory audition, recorded clips should be served locally, work offline, and play through `say()` so answer buttons remain locked until speech ends. Words from future parent-entered lists without a recording keep the device-voice fallback. The learning rules and pronunciation overrides remain unchanged. Exported Apple system-voice recordings are excluded from this proposed public voice pack.
-
-## Approved praise — 10 October 2026
-
-The user approved these ten phrases. Remove “Eagle eyes” from the script and game.
-
-1. You got it!
-2. You read that word!
-3. Nice job looking closely!
-4. You kept trying!
-5. You figured it out!
-6. You took your time!
-7. You fixed it!
-8. You remembered that one!
-9. Look how much you’re learning!
-10. You did it! Let’s keep going!
-
-Use word-specific praise only for words; use correction and persistence praise after a retry; use remembering praise for review words and taking-time praise when the child actually pauses. General encouragement fits any successful answer. Keep corrective prompts neutral: “Look carefully. Try again.” or “Hmm, look again.”
-
-The prior 19.3-credit quote predates this copy revision. Refresh the cost quote for the final script before any further generation. Full-pack generation and the estimated 200-credit reserve remain unapproved; no additional audio was generated.
+Twelve Node suites passed, including recorded routing, complete-word boundaries, unknown/custom text fallback, pitch preservation, autoplay/missing-file recovery, new-prompt cancellation, awaited answer flow and screen-exit recovery. The full browser suite passed game flows, saved jobs, learning rewards, parent settings, reports, phone/tablet layouts and reduced motion. Real browser playback, interruption/replay and all twenty AAC files' decodes/durations passed. With the test server stopped, the final robotfarm-13 game reloaded, opened the parent gate and played both clips of its Helena preview offline; the same audio checks passed offline. Physical Safari playback and listening approval remain pending.

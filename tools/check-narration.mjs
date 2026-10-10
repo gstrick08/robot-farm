@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {readFileSync,existsSync} from 'node:fs';
+import {NARRATION_CLIPS} from '../narration-clips.js';
+import {narrationPlan,createNarrator} from '../narration.js';
+assert.equal(NARRATION_CLIPS.length,20);
+for(const c of NARRATION_CLIPS){assert(existsSync(new URL('../'+c.file,import.meta.url)));assert(c.duration>0&&c.duration<12);}
+assert(narrationPlan('You got it!')[0].file);
+assert(narrationPlan('you got it.')[0].file);
+assert(narrationPlan('Let’s boost our tractor! Tap the big button.')[0].file);
+const plan=narrationPlan('Custom name! You got it! A custom word.');
+assert.equal(plan[0].text,'Custom name!');assert(plan[1].file);assert.equal(plan[2].text,'! A custom word.');
+assert.equal(narrationPlan('You got itemized bills.')[0].file,undefined,'partial words never match');
+assert.equal(narrationPlan('Find the word: like.')[0].file,'audio/narration/helena-002.m4a');
+let pauses=0;
+const audio={pause(){pauses++;},play(){return Promise.resolve();}};
+const n=createNarrator(audio),c=NARRATION_CLIPS[0];
+let p=n.play(c,.85);assert.equal(audio.src,c.file);assert.equal(audio.preservesPitch,true);assert(audio.playbackRate<1);audio.onended();assert.equal(await p,true);
+p=n.play(c,.95);n.stop();assert.equal(await p,false);assert.equal(audio.onended,null);
+audio.play=()=>Promise.reject(Error('blocked'));assert.equal(await n.play(c,.95),false,'autoplay failure releases fallback');
+audio.play=()=>Promise.resolve();p=n.play(c,.95);audio.onerror();assert.equal(await p,false,'missing audio releases fallback');
+p=n.play(c,.95);const p2=n.play(NARRATION_CLIPS[1],.95);assert.equal(await p,false,'new prompt resolves old playback');audio.onended();assert.equal(await p2,true);assert(pauses>0);
+const cache=readFileSync(new URL('../narration-cache.js',import.meta.url),'utf8');for(const c of NARRATION_CLIPS)assert(cache.includes(c.file));
+console.log('Recorded narration: complete-word routing, custom fallback, cancellation, errors, pitch and offline inventory passed ✔');

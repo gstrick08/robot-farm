@@ -1,7 +1,9 @@
 // Offline cache. Bump VERSION on every deploy so the iPad picks up the new game.
-const VERSION = 'robotfarm-12';
+importScripts('narration-cache.js');
+const VERSION = 'robotfarm-13';
 const CORE = [
   './', 'index.html', 'logic.js', 'usage-time.js', 'progress-report.js', 'preferences.js', 'ui.css', 'adventure.css', 'adventure-world.js', 'art.js', 'presentation.js', 'sounds.js', 'driving.js', 'drive-math.js', 'equipment.js', 'job-progress.js',
+  'narration.js', 'narration-clips.js', 'narration-cache.js', ...NARRATION_FILES,
   'manifest.webmanifest', 'icon.png', 'fonts/Andika-Regular.woff2', 'fonts/Fredoka-Latin.woff2',
   ...['tap', 'gold', 'silver', 'hmm', 'coin', 'harvest', 'bag', 'complete', 'rocket', 'medal', 'farm'].map(n => `audio/${n}.m4a`),
 ];

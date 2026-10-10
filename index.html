@@ -269,6 +269,8 @@ import { readProgress, writeProgress, validJobs } from './job-progress.js';
 import { art, robotArt } from './art.js';
 import { rankVoices, voiceQuality, audioPreferences, speechRate } from './presentation.js';
 import { sounds } from './sounds.js';
+import { narrationPlan, createNarrator } from './narration.js';
+import { NARRATION_CLIPS } from './narration-clips.js';
 import { createDriving } from './driving.js';
 import {farmWorld} from './adventure-world.js';
 import { JOBS, jobFor, equipmentProgress, jobIcon, createEquipment } from './equipment.js';
@@ -381,29 +383,50 @@ function pickVoice() {
 }
 
 if (synth) { pickVoice(); synth.onvoiceschanged = pickVoice; }
-let talkId = 0, currentSpeech = Promise.resolve();
+let talkId = 0, currentSpeech = Promise.resolve(), finishSpeech, cancelDevice;
+const narrator = createNarrator();
+function stopSpeech() {
+  ++talkId; narrator.stop(); synth?.cancel(); cancelDevice?.(); cancelDevice=null; finishSpeech?.();
+}
+window.addEventListener('pagehide', stopSpeech);
 function say(text, previewURI = null, previewRate = S.settings.rate) {
   console.debug('🤖', text);
-  const id = ++talkId, bot = $('#bot');
+  stopSpeech();
+  const id = talkId, bot = $('#bot'), rate = speechRate(previewRate);
   sound?.speech(true);
   currentSpeech = new Promise(res => {
-    let done = false, watchdog;
-    const fin = () => { if (done) return; done = true; clearTimeout(watchdog); if (id === talkId) { bot.classList.remove('talk'); sound?.speech(false); } res(); };
-    if (FAST || !synth) return setTimeout(fin, FAST ? 30 : 400 + text.length * 70);
-    const rate = speechRate(previewRate);
-    watchdog = setTimeout(() => { if (id === talkId && synth.speaking) synth.cancel(); fin(); }, 1500 + text.length * 90 / rate); // iOS sometimes never fires onend
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const available = rankVoices(synth.getVoices());
-    if (previewURI === null) pickVoice();
-    const selected = previewURI !== null ? available.find(v => v.voiceURI === previewURI) || available[0] : voice;
-    if (selected) u.voice = selected;
-    u.lang = selected?.lang || 'en-US'; u.rate = rate; u.pitch = 1;
-    u.onend = u.onerror = fin;
+    let done = false;
+    const fin = () => { if (done) return; done = true; bot.classList.remove('talk'); sound?.speech(false); res(); };
+    finishSpeech = fin;
+    if (FAST) return setTimeout(fin, 30);
     bot.classList.add('talk');
-    synth.speak(u);
+    const recorded = [null, '', '__helena__'].includes(previewURI) && (previewURI !== null || !S.settings.voice);
+    const plan = recorded ? narrationPlan(text) : [{text}];
+    (async () => {
+      for (const part of plan) {
+        if (id !== talkId) break;
+        if (part.file && await narrator.play(part, rate)) continue;
+        if (id !== talkId) break;
+        await deviceSpeech(part.text, previewURI, rate);
+      }
+    })().catch(e => console.warn('Narration unavailable', e)).finally(() => { if (id === talkId) fin(); });
   });
   return currentSpeech;
+}
+function deviceSpeech(text, previewURI, rate) {
+  return new Promise(res => {
+    let done=false, watchdog;
+    const fin=()=>{if(done)return;done=true;clearTimeout(watchdog);res();};
+    cancelDevice = fin;
+    if (!synth) return setTimeout(fin, 400 + text.length * 70);
+    watchdog=setTimeout(()=>{synth.cancel();fin();},1500+text.length*90/rate);
+    const u=new SpeechSynthesisUtterance(text), available=rankVoices(synth.getVoices());
+    pickVoice();
+    const selected=previewURI && !['__helena__','__device__'].includes(previewURI) ? available.find(v=>v.voiceURI===previewURI)||available[0] : voice;
+    if(selected)u.voice=selected;
+    u.lang=selected?.lang||'en-US';u.rate=rate;u.pitch=1;u.onend=u.onerror=fin;
+    synth.speak(u);
+  });
 }
 async function speechIdle() {
   let pending;
@@ -413,6 +436,7 @@ async function speechIdle() {
 // ---------- screens & helpers ----------
 let walkTimer, driver;
 function show(id) {
+  stopSpeech();
   if (id !== 'drive') driver?.stop();
   clearTimeout(walkTimer);
   if (id === 'farm') walkTimer = setTimeout(wanderBots, FAST ? 1200 : 12000);
@@ -514,7 +538,7 @@ async function medalParty() {
   const box = openModal('', true), medal = el('div', 'reward-hero'); medal.append(art('medal'));
   const count = S.lists.filter(l => l.passed).length;
   box.append(medal, el('div', 'reward-count', `${count} / 6`));
-  const leave = () => { closeModal(); synth?.cancel(); };
+  const leave = () => { closeModal(); stopSpeech(); };
   box.append(button('play small', '🏡', leave));
   sound?.scene('reward'); sfx.medal(); happy(); confetti();
   rewardTimer = setTimeout(leave, FAST ? 380 : 3800);
@@ -913,7 +937,7 @@ function readerPages() {
   return story || available.slice(0,3);
 }
 function openReader(job) {
-  closeModal(); synth?.cancel();
+  closeModal(); stopSpeech();
   const pages = readerPages();
   if (!pages.length) return say('Keep practicing! We’ll read together when our words are ready.');
   let page = 0;
@@ -972,7 +996,7 @@ async function finishMission() {
   if (full) count.append(el('span', '', '+'), art('goldseed'), el('b', '', 1));
   box.append(hero, count);
   if (type === 'boss') { const bonus = el('div', 'reward-count', '+5'); bonus.append(art('coin')); box.append(bonus); }
-  const leave = () => { closeModal(); synth?.cancel(); celebrateBots().then(goFarm); };
+  const leave = () => { closeModal(); stopSpeech(); celebrateBots().then(goFarm); };
   box.append(button('play small', '🏡', leave));
   const book = button('play small reader-open', '📖', () => openReader(job));
   book.setAttribute('aria-label', 'Read our mini book'); box.append(book);
@@ -983,7 +1007,7 @@ async function finishMission() {
 $('#quit').onclick = () => { // leaving early keeps every seed he earned
   if (M) { payJobSeeds(); save(); }
   M = null; ++qGen; $('#jobAction').hidden = true; $('#mission').classList.remove('action'); $('#replay').disabled = false;
-  document.querySelectorAll('.machine-spark').forEach(e => {e.getAnimations().forEach(a => a.cancel());e.remove();}); synth?.cancel(); goFarm(); say('Okay! Back to our jobs.');
+  document.querySelectorAll('.machine-spark').forEach(e => {e.getAnimations().forEach(a => a.cancel());e.remove();}); stopSpeech(); goFarm(); say('Okay! Back to our jobs.');
 };
 $('#replay').onclick = async () => {
   if (!M?.prompt) return;
@@ -1054,7 +1078,7 @@ async function coopFinish() {
   if (coopGen !== generation || C || document.body.dataset.screen !== 'coop') return;
   after ? after() : goFarm();
 }
-$('#coopQuit').onclick = () => { const after = C?.after; coopGen++; C = null; synth?.cancel(); save(); after ? after() : goFarm(); };
+$('#coopQuit').onclick = () => { const after = C?.after; coopGen++; C = null; stopSpeech(); save(); after ? after() : goFarm(); };
 
 // ---------- practice page: the teacher's shuffled-page format ----------
 function pageTest(keys, words) {
@@ -1142,9 +1166,10 @@ function renderParent(msg = '') {
   <section id="playSettings"><h2>Play &amp; sound</h2>
     <label><input id="setCalm" type="checkbox" ${parentPrefs.calm ? 'checked' : ''}> Calmer visuals (fewer moving effects)</label>
     <label><input id="setEffects" type="checkbox" ${parentPrefs.effects ? 'checked' : ''}> Sound effects</label>
-    <p class="hint">Automatic voice: ${esc(vs[0]?.name || 'Device default; installed voices have not appeared yet')} ${vs[0] ? '— ' + esc(voiceQuality(vs[0])) : ''}</p>
-    <label>Voice<select id="setVoice"><option value="">Automatic</option>${vs.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === S.settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)}) — ${esc(voiceQuality(v))}</option>`).join('')}</select></label>
+    <p class="hint">Device fallback voice: ${esc(vs[0]?.name || 'Device default; installed voices have not appeared yet')} ${vs[0] ? '— ' + esc(voiceQuality(vs[0])) : ''}</p>
+    <label>Voice<select id="setVoice"><option value="">Helena recordings + device fallback</option><option value="__device__" ${S.settings.voice === '__device__' ? 'selected' : ''}>Device voice (automatic)</option>${vs.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === S.settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)}) — ${esc(voiceQuality(v))}</option>`).join('')}</select></label>
     <p class="hint">Only installed English voices reported by this browser appear here; online voices are excluded. For a more natural voice on iPhone or iPad, open Settings → Accessibility → Read &amp; Speak (Spoken Content on older versions) → Voices and download an English Premium or Enhanced voice. Return here and preview it. Siri voices may not be exposed to web pages.</p>
+    <p class="hint">Helena AI narrator: ${NARRATION_CLIPS.length} recorded lines installed. Remaining recordings are pending; names, custom words, and unrecorded lines use the selected device voice. Installed recordings play locally without credits.</p><button data-act="previewHelena">🔊 Hear Helena</button>
     <details><summary>Preview English voices (${vs.length})</summary><div class="voice-list">${vs.map(v => `<div class="voice-row"><span>${esc(v.name)} (${esc(v.lang)})<small>${esc(voiceQuality(v))}</small></span><button data-act="previewVoice" data-voice="${esc(v.voiceURI)}" aria-label="Preview ${esc(v.name)}">▶ Preview</button></div>`).join('')}</div></details>
     <label><input id="setMusic" type="checkbox" ${audioPrefs.music ? 'checked' : ''}> Gentle farm music</label>
     <label>Music volume<input id="setMusicVol" type="range" min="0" max="0.5" step="0.01" value="${audioPrefs.volume}"></label>
@@ -1192,7 +1217,7 @@ function report() {
 }
 let currentReport = null, reportBlob = null, reportGeneration = 0;
 async function openReport() {
-  closeModal(); synth?.cancel(); show('progressReport');
+  closeModal(); stopSpeech(); show('progressReport');
   const generation = ++reportGeneration;
   currentReport = reportData(S, TODAY(), parentPrefs, usage.snapshot()); reportBlob = null;
   $('#reportShare').disabled = $('#reportSave').disabled = true;
@@ -1318,6 +1343,7 @@ const ACT = {
     sound?.update(); const progressSaved = save(); pickVoice();
     renderParent(audioSaved && progressSaved ? 'Settings saved.' : 'Some settings could not be saved. Check device storage and try again.');
   },
+  previewHelena: () => say("You got it! Let’s boost our tractor! Tap the big button.", '__helena__', +$('#setRate').value),
   testVoice: () => say(`Hi, ${$('#setChild').value.trim().slice(0,30) || 'friend'}! Ready to read? Find the word: like.`, $('#setVoice').value, +$('#setRate').value),
   previewVoice: b => say(`Hi, ${$('#setChild').value.trim().slice(0,30) || 'friend'}! Ready to read? Find the word: like.`, b.dataset.voice, +$('#setRate').value),
   testLetters: () => say(L.ABC.map(L.letterName).join(', ')),
@@ -1336,7 +1362,7 @@ $('#parentBody').onchange = e => {
 // ---------- boot ----------
 document.addEventListener('visibilitychange', () => {
   sound?.visibility(document.hidden);
-  if (document.hidden) { if (M) save(); return synth?.cancel(); }
+  if (document.hidden) { if (M) save(); return stopSpeech(); }
   ac?.resume().catch(() => {});
   rollDay();
   if (document.body.dataset.screen === 'farm') renderFarm();

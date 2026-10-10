@@ -45,8 +45,9 @@ console.log('Presentation checks passed ✔');
 // Exercise the service worker install: every required local asset must be precached.
 const events = {}, cached = [];
 const worker = { self: { addEventListener: (type, fn) => events[type] = fn, skipWaiting() {} },
-  caches: { open: async name => ({ addAll: async paths => { assert.equal(name, 'robotfarm-12'); cached.push(...paths); } }) },
+  caches: { open: async name => ({ addAll: async paths => { assert.equal(name, 'robotfarm-13'); cached.push(...paths); } }) },
 };
+worker.importScripts = file => { assert.equal(file,'narration-cache.js'); worker.NARRATION_FILES=JSON.parse(readFileSync(new URL('../'+file,import.meta.url),'utf8').match(/\[.*\]/)[0]); };
 vm.runInNewContext(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), worker);
 let installed; events.install({ waitUntil: p => installed = p }); await installed;
 for (const asset of cached.filter(p => p !== './')) assert.ok(existsSync(new URL('../' + asset, import.meta.url)), 'Cached asset exists: ' + asset);

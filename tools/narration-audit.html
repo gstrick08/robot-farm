@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Helena narration review</title><style>body{font:18px system-ui;background:#eef5f1;color:#183c3d;max-width:850px;margin:auto;padding:24px}button,audio{min-height:44px}button{padding:12px;border:0;border-radius:14px;background:#285d60;color:white;font:inherit}article{background:white;padding:18px;margin:12px 0;border-radius:18px}audio{width:100%}pre{white-space:pre-wrap}h1{margin-bottom:8px}</style><h1>Helena narration review</h1><p>20 recorded lines are installed. More recordings are pending credits. Play any line to review its voice and phrasing.</p><button id="run">Run playback checks</button><pre id="result" role="status">Ready.</pre><section id="clips"></section><script type="module">
+import {NARRATION_CLIPS} from '../narration-clips.js';
+import {createNarrator,narrationPlan} from '../narration.js';
+const narrator=createNarrator(),result=document.querySelector('#result');
+for(const clip of NARRATION_CLIPS){const card=document.createElement('article'),p=document.createElement('p'),a=document.createElement('audio');p.textContent=clip.text;a.controls=true;a.preload='metadata';a.src='../'+clip.file;card.append(p,a);document.querySelector('#clips').append(card);}
+document.querySelector('#run').onclick=async()=>{
+ try{
+  const clips=NARRATION_CLIPS.map(c=>({...c,file:'../'+c.file}));
+  result.textContent='Checking recorded playback…';
+  const p=narrator.play(clips[3],.95);if(!await p)throw Error('First recorded clip failed');
+  const interrupted=narrator.play(clips[0],.95);narrator.stop();if(await interrupted)throw Error('Interrupted clip was not canceled');
+  if(!await narrator.play(clips[3],.95))throw Error('Replay after cancellation failed');
+  const missing=narrator.play({...clips[0],file:'../audio/narration/missing-test.m4a'},.95);if(await missing)throw Error('Missing asset accepted');
+  const ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();
+  for(const c of clips){const r=await fetch(c.file);if(!r.ok)throw Error(c.file+' unavailable');const b=await ac.decodeAudioData(await r.arrayBuffer());if(b.duration<.4||Math.abs(b.duration-c.duration)>.3)throw Error(c.file+' duration mismatch');}
+  await ac.close();
+  if(!narrationPlan('You got it!')[0].file)throw Error('Praise did not route to recording');
+  result.textContent='PASS: real recorded playback, interruption, replay, missing-asset recovery, and all 20 local audio decodes/durations.';
+ }catch(e){result.textContent='FAIL: '+e.message;}
+};
+</script></html>
