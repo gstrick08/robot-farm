@@ -252,12 +252,18 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 </div></main>
 
 <div id="bot" class="bot" aria-hidden="true"><span class="hat"></span><div class="head"><i></i><i></i><b></b></div><div class="body"></div></div>
+<main id="progressReport" class="screen">
+  <nav class="report-toolbar" aria-label="Progress report actions"><button id="reportBack">Back to settings</button><button id="reportShare" disabled>Share image</button><button id="reportSave" disabled>Save image</button><button id="reportPrint">Print / PDF</button><button id="reportCopy">Copy summary</button></nav>
+  <p id="reportNotice" role="status"></p><div id="reportBody"></div>
+</main>
 <button id="gear" class="gear" aria-label="Grown-up settings: hold for 3 seconds or press Enter">⚙️</button>
 <div id="modal" class="modal" hidden></div>
 <div class="rotate">📱↪️</div>
 
 <script type="module">
 import * as L from './logic.js';
+import { TIME_KEY, emptyUsage, validUsage, createUsage, duration } from './usage-time.js';
+import { reportData, reportMarkup, reportImage } from './progress-report.js';
 import { PREF_KEY, ALPHABET, preferences, validPreferences, focusedLetters, focusContext } from './preferences.js';
 import { readProgress, writeProgress, validJobs } from './job-progress.js';
 import { art, robotArt } from './art.js';
@@ -303,6 +309,19 @@ const focusKeys = () => focusedLetters(parentPrefs);
 const reducedMotion = () => parentPrefs.calm || matchMedia('(prefers-reduced-motion: reduce)').matches;
 const applyPreferences = () => document.body.classList.toggle('calm', parentPrefs.calm);
 applyPreferences();
+const heldPointers = new Set(), heldKeys = new Set();
+const usage = createUsage(localStorage, {engaged:() => heldPointers.size > 0 || heldKeys.size > 0});
+document.addEventListener('pointerdown', e => { heldPointers.add(e.pointerId); usage.input(); }, {passive:true});
+for (const event of ['pointerup','pointercancel']) window.addEventListener(event, e => { heldPointers.delete(e.pointerId); usage.input(); }, {passive:true});
+document.addEventListener('keydown', e => { heldKeys.add(e.code); usage.input(); }, {passive:true});
+window.addEventListener('keyup', e => { heldKeys.delete(e.code); usage.input(); }, {passive:true});
+document.addEventListener('input', () => usage.input(), {passive:true});
+const pauseUsage = () => { heldPointers.clear(); heldKeys.clear(); usage.pause(); };
+document.addEventListener('visibilitychange', () => document.hidden ? pauseUsage() : usage.resume());
+window.addEventListener('blur', pauseUsage);window.addEventListener('focus', () => usage.resume());
+window.addEventListener('pagehide', pauseUsage);
+window.addEventListener('pageshow', event => { if (event.persisted) usage.resume(); });
+setInterval(() => usage.flush(), 15000);
 let S = fresh(), jobSessions = [];
 const stored = readProgress(localStorage, KEY); jobSessions = stored.jobs;
 try { const s = JSON.parse(stored.raw); if (s?.v === 1) S = { ...fresh(), ...s, settings: { ...fresh().settings, ...s.settings } }; } catch {}
@@ -399,6 +418,7 @@ function show(id) {
   if (id === 'farm') walkTimer = setTimeout(wanderBots, FAST ? 1200 : 12000);
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
   document.body.dataset.screen = id; sound?.scene(id);
+  usage.activity(id === 'mission' ? $('#jobTitle').textContent + ' · reading job' : ({start:'Welcome screen',yard:'Equipment hub',farm:'Farm play',drive:'Tractor driving',coop:'Grown-up read-aloud',page:'Practice page',parent:'Grown-up settings',progressReport:'Progress report'}[id] || id));
 }
 function applyLook() {
   document.body.style.setProperty('--bot', S.settings.color || COLORS[0]);
@@ -1092,7 +1112,7 @@ function renderParent(msg = '') {
   </section>
   <section><h2>Today</h2>
     <p>Missions ${S.day.done.length}/${todaysMissions().length} · Mission Control ${S.day.coop ? '✓ done' : 'not yet'} · Days played ${Object.keys(S.log).length} · Best gold streak ${S.best.streak}</p>
-    <div class="btns"><button data-act="coop">🚀 Start Mission Control</button><button data-act="report">📤 Share progress report</button></div>
+    <div class="btns"><button data-act="coop">🚀 Start Mission Control</button><button data-act="report">📊 View progress report</button></div>
   </section>
   <section><h2>Heart Words, List ${S.cur + 1} ${list.passed ? `<span class="badge">🏅 Passed ${esc(list.passed)}</span>` : list.ready ? `<span class="badge">🏆 READY TO TEST: send the teacher a note (${esc(list.ready)})</span>` : ''}</h2>
     <div>${listKeys(list).map(chip).join('')}</div>
@@ -1162,18 +1182,61 @@ function report() {
   lines.push(`Letters: ${lk.filter(k => L.isKnown(peek(k))).length} of 52 known, ${lk.filter(k => L.isMastered(peek(k))).length} mastered.`);
   const tricky = lk.filter(k => peek(k).miss + peek(k).again >= 2 && !L.isMastered(peek(k))).map(L.keyText);
   if (tricky.length) lines.push(`  Tricky letters: ${tricky.join(' ')}`);
-  const week = Object.entries(S.log).filter(([d]) => L.daysBetween(d, TODAY()) < 7);
+  const week = Object.entries(S.log).filter(([d]) => L.daysBetween(d, TODAY()) >= 0 && L.daysBetween(d, TODAY()) < 7);
   const n = (x, w) => `${x} ${w}${x === 1 ? '' : 's'}`;
   lines.push(`Last 7 days: ${n(week.length, 'day')} played, ${n(week.reduce((a, [, v]) => a + v.m, 0), 'mission')}, ${n(week.reduce((a, [, v]) => a + v.c, 0), 'Mission Control session')}.`);
+  const time = usage.snapshot();
+  lines.push(`Active app time: ${duration(time.totalMs)} total. Tracking ${time.since ? 'since ' + time.since : 'starts with this update'}; earlier time was not recorded.`);
+  for (const session of time.sessions.slice(-3).reverse()) lines.push(`  App visit ${new Date(session.start).toLocaleString()}: ${duration(session.ms)} active.`);
   return lines.join('\n');
 }
-async function shareReport() {
-  const text = report();
-  if (navigator.share) { try { return await navigator.share({ text }); } catch (e) { if (e.name === 'AbortError') return; } }
-  try { await navigator.clipboard.writeText(text); renderParent('Report copied. Paste it into a message or note.'); } catch { prompt('Copy this report:', text); }
+let currentReport = null, reportBlob = null, reportGeneration = 0;
+async function openReport() {
+  closeModal(); synth?.cancel(); show('progressReport');
+  const generation = ++reportGeneration;
+  currentReport = reportData(S, TODAY(), parentPrefs, usage.snapshot()); reportBlob = null;
+  $('#reportShare').disabled = $('#reportSave').disabled = true;
+  $('#reportNotice').textContent = 'Preparing your shareable image…';
+  $('#reportBody').innerHTML = reportMarkup(currentReport);
+  $('#reportBody .report-mascot').append(art('botHappy'));
+  $('#progressReport').scrollTop = 0;
+  try {
+    await document.fonts.ready;
+    const blob = await reportImage(currentReport);
+    if (generation !== reportGeneration) return;
+    reportBlob = blob; $('#reportShare').disabled = $('#reportSave').disabled = false;
+    $('#reportNotice').textContent = usage.failed ? 'Time tracking could not be saved. Check device storage. You can still share or print this report.' : 'Share a picture of this report, save it, or choose Print / PDF.';
+  } catch {
+    if (generation === reportGeneration) $('#reportNotice').textContent = 'Image export is unavailable. You can still print this report or copy its summary.';
+  }
 }
+function saveReportImage() {
+  if (!reportBlob) return;
+  const link = el('a'); link.href = URL.createObjectURL(reportBlob); link.download = `robot-farm-progress-${currentReport.date}.png`; link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+  $('#reportNotice').textContent = 'Image ready. Check your browser’s downloads or Files.';
+}
+async function shareReportImage() {
+  if (!reportBlob) return;
+  const file = new File([reportBlob], `robot-farm-progress-${currentReport.date}.png`, {type:'image/png'});
+  if (navigator.canShare?.({files:[file]})) {
+    try { await navigator.share({files:[file],title:'Robot Farm progress report'}); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  saveReportImage();
+  $('#reportNotice').textContent = 'Image downloaded. Attach it to your message from Downloads or Files.';
+}
+$('#reportBack').onclick = () => { reportGeneration++; reportBlob = null; openParent(); };
+$('#reportShare').onclick = shareReportImage;
+$('#reportSave').onclick = saveReportImage;
+$('#reportPrint').onclick = () => window.print();
+$('#reportCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText(report()); $('#reportNotice').textContent = 'Summary copied. Paste it into a message or note.'; }
+  catch { prompt('Copy this report:', report()); }
+};
 async function saveBackup() {
-  const data = { ...S, ...(jobSessions.length ? { jobSessions } : {}), ...(JSON.stringify(parentPrefs) !== JSON.stringify(preferences(null)) ? { parentPreferences: parentPrefs } : {}) };
+  const timeUsage = usage.snapshot();
+  const data = { ...S, ...(timeUsage.totalMs ? {timeUsage} : {}), ...(jobSessions.length ? { jobSessions } : {}), ...(JSON.stringify(parentPrefs) !== JSON.stringify(preferences(null)) ? { parentPreferences: parentPrefs } : {}) };
   const name = `robot-farm-backup-${TODAY()}.json`, blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const file = new File([blob], name, { type: 'application/json' });
   if (navigator.canShare?.({ files: [file] })) { try { return await navigator.share({ files: [file] }); } catch (e) { if (e.name === 'AbortError') return; } }
@@ -1197,20 +1260,23 @@ function validBackup(d) {
       && (!t.thing || !!THING[t.thing]) && (!t.crop || (obj(t.crop) && !!CROPS[t.crop.kind] && date(t.crop.planted))));
 }
 function restoreBackup(file) {
+  let verified = false;
   file?.text().then(t => {
     const d = JSON.parse(t);
-    if (!validBackup(d) || (d.jobSessions !== undefined && !validJobs(d.jobSessions)) || (d.parentPreferences !== undefined && !validPreferences(d.parentPreferences))) throw new Error('not a backup');
+    if (!validBackup(d) || (d.jobSessions !== undefined && !validJobs(d.jobSessions)) || (d.parentPreferences !== undefined && !validPreferences(d.parentPreferences)) || (d.timeUsage !== undefined && !validUsage(d.timeUsage))) throw new Error('not a backup');
+    verified = true;
     if (!confirm('Replace the progress on this device with this backup?')) return;
+    usage.stop(); localStorage.setItem(TIME_KEY, JSON.stringify(d.timeUsage || emptyUsage())); delete d.timeUsage;
     const restoredPrefs = preferences(d.parentPreferences);
     localStorage.setItem(PREF_KEY, JSON.stringify(restoredPrefs));
     parentPrefs = restoredPrefs; delete d.parentPreferences;
-    jobSessions = d.jobSessions || []; delete d.jobSessions; M = null; S = d; save(); location.reload();
-  }).catch(() => alert('That file is not a Robot Farm backup.'));
+    jobSessions = d.jobSessions || []; delete d.jobSessions; M = null; S = d; if (save() === false) throw new Error('Save failed'); location.reload();
+  }).catch(() => alert(verified ? 'The backup could not be saved on this device. Check device storage and try again.' : 'That file is not a Robot Farm backup.'));
 }
 
 const ACT = {
   coop: () => startCoop(),
-  report: shareReport,
+  report: openReport,
   pageWords: () => pageTest(listKeys(curList()), true),
   allLetters: () => document.querySelectorAll('[name=focusLetter]').forEach(b => b.checked = true),
   clearLetters: () => document.querySelectorAll('[name=focusLetter]').forEach(b => b.checked = false),
@@ -1256,7 +1322,7 @@ const ACT = {
   previewVoice: b => say(`Hi, ${$('#setChild').value.trim().slice(0,30) || 'friend'}! Ready to read? Find the word: like.`, b.dataset.voice, +$('#setRate').value),
   testLetters: () => say(L.ABC.map(L.letterName).join(', ')),
   backup: saveBackup,
-  reset: () => { if (confirm('Erase ALL progress on this device?') && confirm('Really erase everything? This cannot be undone.')) { localStorage.removeItem(KEY); localStorage.removeItem(PREF_KEY); localStorage.removeItem(AUDIO_KEY); localStorage.removeItem('robotfarm.jobs.v1'); location.reload(); } },
+  reset: () => { if (confirm('Erase ALL progress on this device?') && confirm('Really erase everything? This cannot be undone.')) { usage.stop(); localStorage.removeItem(TIME_KEY); localStorage.removeItem(KEY); localStorage.removeItem(PREF_KEY); localStorage.removeItem(AUDIO_KEY); localStorage.removeItem('robotfarm.jobs.v1'); location.reload(); } },
 };
 $('#parentBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) ACT[b.dataset.act](b); };
 $('#parentBody').onchange = e => {

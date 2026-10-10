@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {reportData,reportMarkup} from '../progress-report.js';
+import {emptyUsage} from '../usage-time.js';
+const fixture=JSON.parse(readFileSync(new URL('fixtures/played-v1.json',import.meta.url)));
+const before=JSON.stringify(fixture);const data=reportData(fixture,'2026-10-10');
+assert.equal(JSON.stringify(fixture),before,'report never changes learning state');assert.equal(data.wordTotal,17);assert.equal(data.wordMastered,0);assert.equal(data.letterKnown,0);assert.equal(data.letters.length,52);assert.equal(data.week.length,7);assert.equal(data.missions,1);assert.equal(data.days,1);
+fixture.log['2026-10-11']={m:999,c:999};fixture.log['2026-10-03']={m:999,c:999};assert.equal(reportData(fixture,'2026-10-10').missions,1,'future and older days excluded');
+fixture.settings.child='<img src=x onerror=alert(1)>';fixture.lists[0].words.push('<script>');const html=reportMarkup(reportData(fixture,'2026-10-10'));assert.ok(html.includes('&lt;img'));assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<img src=x'));assert.ok(html.includes('Time tracking starts with this update'));
+fixture.items['L:A']={...fixture.items['L:f'],box:3};assert.equal(reportData(fixture,'2026-10-10').letterKnown,1);
+fixture.items['L:A']={...fixture.items['L:A'],box:1,days:['2026-10-08','2026-10-09','2026-10-10'],fast:1,coop:'fast'};const dropped=reportData(fixture,'2026-10-10');assert.equal(dropped.letterKnown,0,'known count follows original box rule after a miss');assert.equal(dropped.letterMastered,1,'mastery remains the original independent rule');
+const usage={...emptyUsage(),since:'2026-10-01',totalMs:120000,days:{'2026-10-10':60000,'2026-10-01':60000}};assert.equal(reportData(fixture,'2026-10-10',null,usage).timeWeek,60000);
+const history={...usage,sessions:Array.from({length:6},(_,i)=>({id:String(i),start:i*10000,end:i*10000+1000,ms:1000,activities:[{label:'Visit '+i,ms:1000}]}))};const historyMarkup=reportMarkup(reportData(fixture,'2026-10-10',null,history));assert.ok(historyMarkup.includes('View earlier app sessions (1)'));assert.ok(historyMarkup.includes('Visit 0'),'earlier visit durations remain available');
+console.log('Report counts, seven-day boundaries, time totals, safe markup and read-only data passed ✔');

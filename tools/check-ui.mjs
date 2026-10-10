@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import * as L from '../logic.js';
+import { emptyUsage, validUsage, TIME_KEY, duration } from '../usage-time.js';
 import { preferences, validPreferences, PREF_KEY, focusContext } from '../preferences.js';
 import {validJobs} from '../job-progress.js';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -12,6 +13,7 @@ const functionSource = name => {
 };
 let blob, reloads = 0, notices = [], exportedName;
 const context = vm.createContext({
+  usage: {snapshot:emptyUsage,stop(){}}, emptyUsage, validUsage, TIME_KEY, duration,
   parentPrefs: preferences(null), preferences, validPreferences, PREF_KEY, localStorage: {setItem() {}},
   THING: Object.fromEntries(['chicken','pig','sheep','cow','horse','soil','flower','tree','rock','brick','wood','water','house','tractor','cap','tophat','crown','ship'].map(k=>[k,{}])), CROPS: {carrot:1,corn:1,strawberry:1,pumpkin:1}, S: structuredClone(fixture), jobSessions: [], M: null, validJobs, structuredClone, jobContext:()=> 'test', L, TODAY: () => '2026-10-09', navigator: {}, Blob, File,
   URL: { createObjectURL: b => { blob = b; return 'blob:local-test'; }, revokeObjectURL() {} },
@@ -66,6 +68,11 @@ const focusSeeds=context.S.seeds;context.checkpoint();
 assert.equal(context.S.seeds,focusSeeds+1,'focus changes bank unpaid letter gold');
 assert.deepEqual(context.jobSessions,[savedJob],'word checkpoint survives focus change');
 context.checkpoint();assert.equal(context.S.seeds,focusSeeds+1,'focus changes never pay twice');
+const timeUsage={...emptyUsage(),since:'2026-10-10',totalMs:10000,days:{'2026-10-10':10000},sessions:[{id:'test',start:0,end:10000,ms:10000,activities:[{label:'Reading',ms:10000}]}]};
+context.usage.snapshot=()=>timeUsage;let restoredTime;context.localStorage.setItem=(key,value)=>{if(key===TIME_KEY)restoredTime=JSON.parse(value)};
+await context.saveBackup();const withTime=JSON.parse(await blob.text());assert.deepEqual(withTime.timeUsage,timeUsage,'backup includes active time');
+context.restoreBackup({text:async()=>JSON.stringify(withTime)});await new Promise(setImmediate);assert.deepEqual(restoredTime,timeUsage,'restore preserves session times');assert.equal('timeUsage' in context.S,false,'time stays outside learning state');
+const safeCoins=context.S.coins;context.restoreBackup({text:async()=>JSON.stringify({...withTime,timeUsage:{v:1,totalMs:-1}})});await new Promise(setImmediate);assert.equal(context.S.coins,safeCoins,'malformed time cannot replace learning save');
 const report = context.report();
 assert.match(report, /Heart Words List 1: 0 of 17 words mastered/);
 assert.match(report, /Letters: 0 of 52 known, 0 mastered/);
