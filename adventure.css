@@ -1,0 +1,109 @@
+/* Approved farm-island materials; existing viewport and teaching-font rules still apply. */
+:root{--sky:#b2e8ff;--sky2:#e3f8ff;--grass:#9bd279;--gold:#fac448;--ink:#15394b;--card:#faffff;--edge:#d9eef4;--shadow:#6494a652;--water:#48bddd;--bot:#19a6b4;--bot-light:#8ae2e1;--bot-dark:#087d96}
+body{color:var(--ink)}
+#yard,#drive,#mission,#mission[data-type]{background:radial-gradient(ellipse at 65% 12%,#f2fcff,#b2e8ff 60%,#80d0ed)}
+.round,.pod,.play,.shop-item{border-color:#fff;box-shadow:0 5px 0 #548a9d55,0 8px 18px #17677c13}
+.round{background:linear-gradient(#fff,#e7f6fb)}
+.play,.yard-start,#actionGo{background:linear-gradient(#faff92,#dbe95b);border-color:#fcffd1;color:#153f46;box-shadow:0 5px 0 #6c9a22,0 10px 18px #496e2919}
+.art{filter:drop-shadow(0 3px 1px #25556319)}
+.yard-top{position:relative;z-index:1}.yard-top h1{font-weight:550;letter-spacing:-1px;color:var(--ink)}
+.yard-subtitle{display:block;font-size:16px;font-weight:400;letter-spacing:0;color:#47717f;margin-top:7px}
+.yard-layout{grid-template-columns:250px minmax(0,1fr);gap:26px}
+.yard-layout aside>h2{color:#357184;font-size:18px}
+.yard-job{border:2px solid #fff;background:#f8fefff2;box-shadow:0 5px 0 #5b92a933;border-radius:22px;color:var(--ink)}
+.yard-job.selected{border-color:#fcffd1;background:linear-gradient(125deg,#faffb4,#e6f39d);box-shadow:0 5px 0 #89ac54}
+.yard-job.done{background:#e0f5d3;border-color:#f7ffeb}
+.yard-job .art{background:#daf2a6;border-radius:15px;padding:4px}
+.yard-counts>span{background:#faffffe8;border:2px solid white;border-radius:20px;box-shadow:0 5px 0 #6b9ab533;padding:9px 15px}
+.yard-adventure{position:relative;gap:0}
+.yard-adventure h2{font-weight:500;color:var(--ink);margin:0;font-size:28px}
+#yardScene.island-scene{width:100%;height:auto;flex:1;min-height:0;position:relative;overflow:hidden}
+.island-scene canvas,.drive-world canvas{width:100%;height:100%;display:block}
+.yard-start{position:relative;z-index:1;max-width:400px;margin-top:0;border-radius:22px}
+.mtop{background:transparent}.bag{border-color:#fff;background:#faffffe8}.bag i{background:#cee5ed}.bag i.on{background:#ffdc75}
+.mission-equipment h2{color:#27687e;font-weight:500}
+.equipment-scene svg{border-radius:24px;filter:drop-shadow(0 9px 0 #3b92a01a)}
+.equipment-scene .machine,.equipment-scene .assembly-base{filter:drop-shadow(0 4px 1px #29536622)}
+.opt,.opts.pods .opt,.opts.blocks .opt{border-color:#e1ebef;background:linear-gradient(#fffefa,#fffdf3);color:#153d4a;box-shadow:0 6px 0 #8eb8c8,0 10px 20px #216d8515}
+.opt.right{background:#e7f0ad;border-color:#84bc43}.prompt.teach,.prompt.twin{border-color:#fff;background:#fafffff0}
+#jobAction p{color:#215b70}
+.drive-top{background:transparent}.drive-top h1{color:var(--ink);font-weight:500}.drive-score{border-color:#fff;background:#fafffff0}
+.drive-controls button{border-color:#fff;background:linear-gradient(#fff,#d7f0f7);color:#1d5b71;box-shadow:0 5px 0 #477e9250}.drive-controls button.pressed{background:#e4f290}
+.drive-menu{background:#faffffeb;border:3px solid #fff;border-radius:30px;box-shadow:0 10px 0 #749dab42}.drive-road-card{border-color:#fff;background:#eaf6dd;box-shadow:0 6px 0 #86aca654;color:var(--ink)}
+.drive-road-card span{font-size:22px;display:block;padding:10px 6px}.drive-road-card svg{border-radius:20px}
+#modal .adventure-reward{background:#fafffff5;border:3px solid #fff;border-radius:34px;box-shadow:0 12px 0 #749dab42,0 20px 50px #177f9925;text-align:center}
+.reward-star{width:80px;height:80px;margin:0 auto 8px}.adventure-reward .job-complete-title{font-size:46px;font-weight:550;margin:0 0 10px;color:var(--ink)}
+.adventure-reward .reward-count{background:#edf5de;border-radius:18px;padding:12px}.adventure-reward .play.small{margin:12px 7px 0}
+.mini-reader{background:#faffff!important;border:3px solid #fff!important}.reader-text{color:var(--ink)}
+@media(max-height:760px){.yard-layout{gap:18px}.yard-adventure h2{font-size:25px}.yard-subtitle{font-size:14px}.yard-start{min-height:72px}.reward-star{width:60px;height:60px}.adventure-reward .job-complete-title{font-size:34px}}
+@media(max-width:600px){.yard-layout{gap:14px}.yard-top h1{font-size:28px}.yard-subtitle{font-size:13px;margin-top:4px}.yard-counts>span{padding:6px 10px}.yard-adventure h2{font-size:22px}#yardScene.island-scene{height:230px;min-height:230px;flex:auto}.yard-start{margin-top:0}.yard-job .art{padding:2px}.drive-road-card span{font-size:15px;padding:6px}.adventure-reward .job-complete-title{font-size:33px}}
+@media(orientation:landscape) and (max-height:500px){.yard-layout{grid-template-columns:180px minmax(0,1fr);gap:12px}.yard-subtitle{display:none}#yardScene.island-scene{height:110px;min-height:110px}.yard-adventure h2{display:none}.yard-start{min-height:72px}.drive-road-card span{font-size:15px}.reward-star{width:45px;height:45px}.adventure-reward .job-complete-title{font-size:27px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media(max-width:900px) and (max-height:760px){#yardScene.island-scene{height:135px;min-height:135px;flex:auto}.yard-subtitle{font-size:12px}.yard-adventure h2{font-size:21px}}
+@media(max-height:500px){#yardScene.island-scene{height:70px;min-height:70px}.yard-subtitle{display:none}}
+@media(min-width:601px) and (max-width:900px) and (min-height:761px){#yardScene.island-scene{height:280px;min-height:280px;flex:auto}}
+@media(max-width:900px) and (min-height:501px) and (max-height:760px){#yardScene.island-scene{height:125px;min-height:125px}}
+@media(min-width:901px) and (min-height:501px){#yard{padding-bottom:calc(100px + env(safe-area-inset-bottom))}}
+@media(max-height:500px){
+ #modal .adventure-reward{display:grid;grid-template-columns:140px minmax(0,1fr);gap:6px;width:min(500px,calc(100vw - 24px));padding:12px}
+ .adventure-reward .reward-star{display:none}
+ .adventure-reward .job-complete-title{grid-column:2;grid-row:1;margin:0!important;font-size:27px}
+ .adventure-reward .equipment-reward{grid-column:1;grid-row:1/4;align-self:center;margin:0}
+ .adventure-reward .reward-count{grid-column:2;margin:0;padding:5px;font-size:24px}
+ .adventure-reward .reward-count .art{width:30px;height:30px}
+ .adventure-reward .play.small{grid-column:1;grid-row:4;justify-self:center;margin:4px 0 0}
+ .adventure-reward .reader-open{grid-column:2!important}
+}
+.adventure-reward .play.small{display:inline-grid}
+.equipment-scene{border-color:#fff;box-shadow:0 6px 0 #71a5b52b}.mission-equipment h2{border-color:#fff}
+@media(max-width:360px){body[data-screen="yard"] .bot{display:none}}
+
+/* Grown-up controls remain scrollable on phones and tablets. */
+.settings-nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+.settings-nav a { display:flex; align-items:center; min-height:44px; padding:8px 14px; border-radius:16px; background:#d9f4ee; color:#164c50; font-weight:bold; }
+#parentBody section { scroll-margin-top:20px; }
+#parentBody input:not([type=checkbox]):not([type=radio]):not([type=range]), #parentBody select, #parentBody textarea { max-width:100%; box-sizing:border-box; min-height:44px; }
+.letter-focus { display:grid; grid-template-columns:repeat(auto-fit,minmax(82px,1fr)); gap:8px; padding:12px; border:2px solid #badbd2; border-radius:18px; }
+#parentBody .letter-focus label { display:flex; align-items:center; gap:8px; margin:0; min-height:44px; padding:4px; background:#eef7ed; border-radius:10px; cursor:pointer; }
+body.calm *, body.calm *::before, body.calm *::after { animation:none !important; transition:none !important; }
+#parentBody button, #parentBody .file, #parentBack { min-height:44px; }
+#parentBody .swatch { width:44px; height:44px; }
+#parentBody label:has(input[type=checkbox]) { min-height:44px; display:flex; align-items:center; gap:8px; }
+@media (prefers-reduced-motion:no-preference) {
+  body.calm .bar3.go i { transition:transform 3s linear !important; }
+}
+
+/* Report styles also provide a clean, ink-friendly print/PDF layout. */
+#progressReport { overflow:auto; background:#edf4ef; }
+.report-toolbar { position:sticky; top:0; z-index:2; padding:14px max(16px,calc((100% - 920px)/2)); background:#edf4eff5; border-bottom:1px solid #cfddd6; display:flex; flex-wrap:wrap; gap:8px; }
+.report-toolbar button { min-height:44px; border-radius:12px; background:#175b5b; color:white; padding:10px 16px; font-size:15px; }
+.report-toolbar button:disabled { opacity:.5; cursor:wait; }
+#reportNotice { font-size:15px; max-width:920px; margin:12px auto; padding:0 20px; color:#345c55; }
+.progress-card { max-width:920px; margin:20px auto 48px; padding:0 24px 26px; color:#234b50; font-family:Arial,sans-serif; line-height:1.5; }
+.report-hero { display:flex; align-items:center; justify-content:space-between; gap:16px; border-radius:26px; padding:30px; background:linear-gradient(125deg,#175b5b,#246d61); color:white; }
+.report-hero h1 { font-size:clamp(25px,4vw,38px); line-height:1.2; margin:10px 0; overflow-wrap:anywhere; }
+.report-hero p { margin:6px 0; }.report-eyebrow { font-size:12px; letter-spacing:1.5px; font-weight:bold; color:#c5efdc; }
+.report-mascot { flex:0 0 100px; }.report-mascot .art { width:100px; height:110px; }
+.report-section,.report-next { background:white; padding:24px; margin-top:18px; border:1px solid #dce8df; border-radius:22px; }
+.progress-card h2 { font-size:21px; margin:0 0 8px; }.progress-card p { margin:6px 0 14px; }.report-muted,.report-footer { color:#52646a; font-size:14px; }
+.report-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:20px 0; }.report-stats div { padding:14px; background:#edf6f0; border-radius:16px; }.report-stats strong { font-size:34px; display:block; color:#175b5b; }.report-stats span { display:block; font-size:14px; }
+.report-week { display:grid; grid-template-columns:repeat(7,1fr); gap:10px; text-align:center; font-size:13px; }.report-day-count { display:block; font-weight:bold; }.report-bar-track { height:64px; max-width:42px; margin:8px auto; border-radius:8px; background:#edf2ee; display:flex; align-items:flex-end; overflow:hidden; }.report-bar-track i { width:100%; background:#2b9180; border-radius:8px; }
+.report-overview { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-top:18px; }.report-overview>div { padding:22px; background:white; border:1px solid #dce8df; border-radius:22px; }.report-overview h2 { font-size:16px; }.report-overview strong { font-size:34px; color:#175b5b; display:block; }.report-overview small { font-size:20px; font-weight:normal; color:#52646a; }
+.report-overview progress { display:block; width:100%; height:10px; margin-top:12px; border:0; border-radius:10px; overflow:hidden; background:#e5eeeb; accent-color:#cfa333; }.report-overview progress::-webkit-progress-bar { background:#e5eeeb; }.report-overview progress::-webkit-progress-value { background:#cfa333; }.report-overview progress::-moz-progress-bar { background:#cfa333; }
+.report-legend { display:flex; flex-wrap:wrap; gap:12px 20px; margin:24px 4px 0; font-size:14px; }.report-legend span { display:flex; align-items:center; gap:6px; }.report-legend i { width:14px; height:14px; display:inline-block; border-radius:4px; }
+.report-chips { display:flex; flex-wrap:wrap; gap:8px; }.report-chip { display:inline-flex; align-items:center; justify-content:center; padding:6px 12px; border-radius:10px; font:20px Andika,Arial,sans-serif; max-width:100%; box-sizing:border-box; overflow-wrap:anywhere; }.report-alphabet { margin-top:12px; }.report-alphabet .report-chip { width:40px; padding:6px 2px; }
+.report-chip.mastered,.report-legend .mastered { background:#fff0bc; color:#745315; }.report-chip.known,.report-legend .known { background:#d8f1e9; color:#17574e; }.report-chip.learning,.report-legend .learning { background:#ece2fa; color:#694492; }.report-chip.new,.report-legend .new { background:#eff2f3; color:#52646a; }
+.report-section-heading { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; justify-content:space-between; }.report-list-badge { background:#e5f3e9; color:#225747; border-radius:20px; padding:5px 10px; font-size:12px; font-weight:bold; }.report-focus { margin-top:20px!important; overflow-wrap:anywhere; }.report-next { background:#e2f0e4; }.report-footer { padding:18px 4px 0; }.sr-only { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+@media(max-width:540px) { .progress-card { padding:0 12px 20px; margin-top:12px; }.report-hero { padding:22px; }.report-mascot { display:none; }.report-section,.report-next { padding:18px; }.report-stats { gap:6px; }.report-stats div { padding:10px; }.report-stats span { font-size:12px; }.report-overview { gap:10px; }.report-overview>div { padding:16px; }.report-week { gap:4px; }.report-toolbar button { flex:1 1 auto; } }
+@media print {
+  @page { margin:12mm; }
+  body[data-screen=progressReport] { height:auto; overflow:visible; background:white; }
+  body[data-screen=progressReport]>*:not(#progressReport) { display:none!important; }
+  body[data-screen=progressReport] #progressReport { position:static!important; display:block!important; height:auto!important; overflow:visible!important; background:white; }
+  .report-toolbar,#reportNotice { display:none!important; }.progress-card { max-width:none; margin:0; padding:0; }.report-hero { background:#fff!important; color:#175b5b!important; border:2px solid #175b5b; }.report-eyebrow { color:#175b5b!important; }
+  .report-section,.report-next,.report-overview>div { break-inside:avoid; box-shadow:none; }.progress-card { print-color-adjust:exact; -webkit-print-color-adjust:exact; }.report-footer { font-size:11px; }
+}
+.report-time-stats { display:flex; flex-wrap:wrap; gap:20px 40px; margin:18px 0; }.report-time-stats strong { font-size:28px; color:#175b5b; display:block; }.report-time-stats span { font-size:14px; }.report-session { border-top:1px solid #dce8df; padding:12px 0; }.report-session>div { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }.report-session p { font-size:14px; color:#52646a; margin:8px 0 0; overflow-wrap:anywhere; }.report-session strong { color:#175b5b; }.report-section h3 { font-size:16px; margin-top:22px; }
+#progressReport.on { display:block; }
+body[data-screen=progressReport] .bot { display:none; }
+.report-session-history summary { cursor:pointer; min-height:44px; display:flex; align-items:center; padding:8px 0; color:#175b5b; font-weight:bold; }

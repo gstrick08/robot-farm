@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Equipment mission browser checks</title><link rel="icon" href="../icon.png"><style>body{font:16px system-ui;background:#f3f6eb;margin:12px}button{padding:12px;margin:5px}iframe{width:1024px;height:768px;display:block;border:1px solid #a8b79b}pre{white-space:pre-wrap}</style>
+<p>Local development only. Run on a separate localhost port; this origin contains disposable test progress.</p><button id="clearCache">Clear disposable test cache</button><button id="all">Run final end-to-end suite</button><button id="run">Run equipment mission checks</button><button id="mobile">Run phone/tablet checks</button><button id="resume">Run saved-job and action checks</button><button id="flow">Run complete flow checks</button><button id="settings">Run settings checks</button><button id="reportCheck">Run report checks</button><button id="showReport">Show report</button><button id="showSettings">Show settings</button><button id="phone">320 × 568</button><button id="small">1024 × 768</button><button id="wide">1180 × 820</button><button id="jobs">Show five daily jobs</button><button id="field">Show field question</button><button id="pop">Show popcorn question</button><button id="action">Show tractor action</button><button id="reader">Show mini reader</button><button id="reward">Show celebration</button><button id="rewardCheck">Check celebration layouts</button><button id="complete">Show completed equipment</button><button id="reduced">Run reduced-motion action checks</button><button id="offline">Install offline cache</button><iframe></iframe><pre id="result">Loading test build…</pre>
+<script type="module">
+const frame=document.querySelector('iframe'),result=document.querySelector('#result');
+if(!/^(localhost|127\.|\[::1\])/.test(location.hostname)){document.body.textContent='Local checks only.'}else{
+ const fixture=await(await fetch('fixtures/played-v1.json')).json();localStorage.removeItem('robotfarm.jobs.v1');localStorage.setItem('robotfarm.v1',JSON.stringify(fixture));
+ let html=await(await fetch('../index.html')).text();
+ const hooks=String.raw`
+ const assert=(ok,message)=>{if(!ok)throw new Error(message)};
+ const waitFor=async predicate=>{const until=performance.now()+5000;while(!predicate()){if(performance.now()>until)throw new Error('Timed out waiting for the mission');await new Promise(r=>setTimeout(r,15));}};
+ const ready=()=>M&&!$('#opts').classList.contains('locked');
+ const correct=()=>$('#opts').querySelector('[data-k="'+CSS.escape(M.m.current)+'"]');
+ const wrong=()=>[...$('#opts').querySelectorAll('.opt')].find(b=>b.dataset.k!==M.m.current&&!b.disabled);
+ const snapshot=()=>JSON.stringify([...document.querySelectorAll('#jobScene .equipment-bit, #jobScene .equipment-travel')].map(b=>b.getAttribute('style')));
+ function testState(){closeModal();M=null;jobSessions=[];parentPrefs=preferences(null);applyPreferences();S=structuredClone(window.parent.equipmentFixture);S.start=TODAY();S.day={date:TODAY(),done:[],coop:0};S.settings.perDay=4;for(const k of [...wordKeys(),...L.LETTER_KEYS])S.items[k]={...L.newItem(),box:2,last:TODAY()};save();}
+ async function answerRight(){correct().click();await waitFor(()=>!M||ready()||!$('#jobAction').hidden&&!$('#actionGo').disabled);if(M?.phase==='action'){$('#actionGo').click();await waitFor(()=>!M||ready());}}
+ async function helped(){wrong().click();await waitFor(ready);assert(!$('#bag i.on'),'miss does not add gold');wrong().click();await waitFor(ready);assert(correct().classList.contains('hint'),'second miss hints the right choice');await answerRight();}
+ window.equipmentChecks=async()=>{
+  const messages=[],log=s=>{messages.push(s);window.parent.document.querySelector('#result').textContent=messages.join('\n')};
+  const original=JSON.parse(localStorage.getItem('robotfarm.v1'));assert(original.v===1&&original.seeds===13&&original.goldSeeds===1,'played v1 fixture loaded');log('Played v1 save: seeds 13, golden seed 1, original schema.');
+  for(const [index,type] of ['hunt','pods','letters','twins','boss'].entries()){
+   testState();await startMission(type,index%4);await waitFor(ready);
+   const picture=snapshot(),bad=wrong();bad.click();await waitFor(ready);assert(bad.disabled&&bad.classList.contains('faded'),'wrong answer fades and locks');assert(snapshot()===picture,'miss leaves equipment still');
+   wrong().click();await waitFor(ready);assert(correct().classList.contains('hint'),'second-miss hint');await answerRight();assert(M.m.silvers===1&&M.m.golds===0,'helped answer remains silver');assert($('#bag').querySelectorAll('.on').length===0,'silver does not fill gold bag');assert(snapshot()!==picture||equipmentProgress(M.m)>0,'silver advances equipment');
+   const state=M.m;while(M)await answerRight();assert(state.golds===10&&state.asked<=15,'mission ends at ten gold');assert(S.seeds===23&&S.goldSeeds===2,'exact reading rewards');if(type==='boss')assert(S.coins===7,'Glitch retains five-coin bonus');log(type+': two misses, silver, equipment action, ten gold and reward passed.');closeModal();
+  }
+  testState();await startMission('hunt',3);await waitFor(ready);const capState=M.m;while(M)await helped();assert(capState.asked===15&&capState.silvers===15&&capState.golds===0,'fifteen helped answers cap');assert(S.seeds===13&&S.goldSeeds===1,'no gold rewards for silver-only mission');log('15-question cap and zero-gold celebration passed.');closeModal();
+  testState();await startMission('letters',0);await waitFor(ready);await answerRight();const earned=M.m.golds;$('#quit').click();assert(S.seeds===13+earned&&!M&&document.body.dataset.screen==='yard','quit keeps earned seeds');await new Promise(r=>setTimeout(r,200));assert(document.body.dataset.screen==='yard','no stale question after leaving');log('Quit preserves earned seeds and stays in job hub.');
+  const before=localStorage.getItem('robotfarm.v1');$('#yardDrive').click();$('#drive .drive-top .round').click();assert(localStorage.getItem('robotfarm.v1')===before,'road navigation preserves progress');log('Road navigation and v1 progress preservation passed.');
+  testState();S.settings.perDay=5;save();goFarm();assert($('#yardJobs').children.length===5,'five daily jobs fit the configured limit');log('Daily limit 2–5 preserved; five-job hub rendered.');
+  for(const type of ['hunt','pods','letters','twins','boss']){await startMission(type,1);await waitFor(ready);for(const b of $('#opts').children){const r=b.getBoundingClientRect();assert(r.width>=72&&r.height>=72&&r.bottom<innerHeight&&r.left>=0&&r.right<=innerWidth,'choices fit at iPad size for '+type);}$('#quit').click();}log('All five answer layouts fit 1024 × 768, with 72px minimum touch targets.');
+  log('PASS: equipment integration browser checks.');
+ };
+ window.showEquipmentTest=async job=>{testState();await startMission('hunt',job);await waitFor(ready);};
+ window.showFiveJobs=()=>{testState();S.settings.perDay=5;save();goFarm();};
+ window.finishEquipmentTest=async()=>{if(!M){testState();await startMission('hunt',3);await waitFor(ready);}M.equipment.paint(1);lock();};
+ window.parent.document.querySelector('#result').textContent='Ready. Test hooks exist only in this generated localhost iframe.';
+ `;
+ html=html.replace('href="ui.css"','href="ui.css?audit='+Date.now()+'"').replace('href="adventure.css"','href="adventure.css?audit='+Date.now()+'"').replace("if ('serviceWorker' in navigator", "if (false && 'serviceWorker' in navigator").replace('<head>','<head><base href="'+new URL('../',location.href).href+'">').replace("const FAST = qs.has('fast');",'const FAST = true;').replace(/<\/script>\s*<\/body>/,hooks+'\n'+await(await fetch('e2e-hooks.js?audit='+Date.now(),{cache:'no-store'})).text()+'\n<\/script></body>');
+ window.equipmentFixture=fixture;frame.srcdoc=html;
+ document.querySelector('#clearCache').onclick=async()=>{for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();for(const k of await caches.keys())await caches.delete(k);location.reload()};
+ document.querySelector('#all').onclick=async()=>{const logs=[];try{for(const name of ['equipmentChecks','resumeChecks','mobileChecks','flowChecks','settingsChecks','reportChecks','reducedChecks','rewardLayoutChecks']){await frame.contentWindow[name]();logs.push(result.textContent);}result.textContent=logs.join('\n\n')+'\n\nPASS: final end-to-end suite.';}catch(e){result.textContent+='\nFAIL: '+e.message}};
+ document.querySelector('#run').onclick=async()=>{try{await frame.contentWindow.equipmentChecks()}catch(e){result.textContent+='\nFAIL: '+e.message}};
+ document.querySelector('#mobile').onclick=async()=>{try{await frame.contentWindow.mobileChecks()}catch(e){result.textContent+='\nFAIL: '+e.message}};
+ document.querySelector('#resume').onclick=async()=>{try{await frame.contentWindow.resumeChecks()}catch(e){result.textContent+='\nFAIL: '+e.message}};
+ document.querySelector('#flow').onclick=async()=>{try{await frame.contentWindow.flowChecks()}catch(e){result.textContent+='\nFAIL: '+e.message}};
+ document.querySelector('#reportCheck').onclick=async()=>{try{await frame.contentWindow.reportChecks()}catch(e){result.textContent+='\nFAIL: '+e.message}};
+ document.querySelector('#showReport').onclick=()=>frame.contentWindow.showReportTest();
+ document.querySelector('#settings').onclick=async()=>{try{await frame.contentWindow.settingsChecks()}catch(e){result.textContent+='\nFAIL: '+e.message}};
+ document.querySelector('#showSettings').onclick=()=>frame.contentWindow.showSettingsTest();
+ document.querySelector('#phone').onclick=()=>{frame.style.width='320px';frame.style.height='568px'};
+ document.querySelector('#small').onclick=()=>{frame.style.width='1024px';frame.style.height='768px'};
+ document.querySelector('#wide').onclick=()=>{frame.style.width='1180px';frame.style.height='820px'};
+ document.querySelector('#jobs').onclick=()=>frame.contentWindow.showFiveJobs();
+ document.querySelector('#field').onclick=()=>frame.contentWindow.showEquipmentTest(1);
+ document.querySelector('#pop').onclick=()=>frame.contentWindow.showEquipmentTest(3);
+ document.querySelector('#action').onclick=()=>frame.contentWindow.showActionTest();
+ document.querySelector('#reader').onclick=()=>frame.contentWindow.showReaderTest();
+ document.querySelector('#reward').onclick=()=>frame.contentWindow.showRewardTest();
+ document.querySelector('#rewardCheck').onclick=async()=>{try{await frame.contentWindow.rewardLayoutChecks()}catch(e){result.textContent+='\nFAIL: '+e.message}};
+ document.querySelector('#complete').onclick=()=>frame.contentWindow.finishEquipmentTest();
+ document.querySelector('#reduced').onclick=async()=>{try{await frame.contentWindow.reducedChecks()}catch(e){result.textContent='FAIL: '+e.message}};
+ document.querySelector('#offline').onclick=async()=>{try{for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();for(const k of await caches.keys())await caches.delete(k);const registration=await navigator.serviceWorker.register('../sw.js?audit='+Date.now(),{scope:'../'});const worker=registration.installing||registration.waiting||registration.active;if(worker?.state!=='activated')await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Offline installation timed out')),10000);worker.addEventListener('statechange',()=>{if(worker.state==='activated'){clearTimeout(timer);resolve()}else if(worker.state==='redundant'){clearTimeout(timer);reject(Error('Offline installation failed'))}})});const c=await caches.open('robotfarm-14');if(!await c.match(new URL('../usage-time.js',location.href)))throw Error('Settings module missing from offline cache');result.textContent='Offline cache robotfarm-14 ready, including settings and saved-job support.'}catch(e){result.textContent=e.message}};
+}
+</script></html>

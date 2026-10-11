@@ -7,9 +7,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Robot Farm">
-<meta name="theme-color" content="#8fd3ff">
+<meta name="theme-color" content="#c4e9e5">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
 <title>Robot Farm</title>
 <style>
 @font-face { font-family: Andika; src: url(fonts/Andika-Regular.woff2) format('woff2'); font-display: swap; }
@@ -77,8 +78,8 @@ body.placing .tile.grass:empty { outline: 3px dashed rgba(255,255,255,.8); outli
 .pod.glow { animation: glow 1.6s ease-in-out infinite; }
 .pod.shopbtn { background: radial-gradient(circle at 35% 30%, #fff, #ffe2b8 60%, #f4b46c); }
 @keyframes glow { 50% { box-shadow: 0 6px 0 rgba(0,0,0,.2), 0 0 0 10px rgba(255,255,255,.7); } }
-.placing { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 46px; background: rgba(255,255,255,.9); padding: 4px 24px; border-radius: 30px; animation: glow 1.6s infinite; }
-.placing[hidden] { display: none; }
+#placing { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 46px; background: rgba(255,255,255,.9); padding: 4px 24px; border-radius: 30px; animation: glow 1.6s infinite; }
+#placing[hidden] { display: none; }
 
 /* mission */
 #mission, #coop { flex-direction: column; align-items: center; }
@@ -182,9 +183,13 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 @keyframes floatup { to { transform: translate(-50%, -70px); opacity: 0; } }
 .fly { position: fixed; font-size: 42px; margin: -21px 0 0 -21px; transition: transform .55s ease-in; z-index: 30; pointer-events: none; }
 .rotate { position: fixed; inset: 0; background: var(--sky); display: none; place-items: center; font-size: 110px; z-index: 50; }
-@media (orientation: portrait) and (max-width: 1100px) and (pointer: coarse) { .rotate { display: grid; } }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
+<link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="adventure.css">
+<link rel="preload" href="fonts/Fredoka-Latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/Andika-Regular.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 <body data-screen="start">
 
@@ -196,7 +201,7 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
 
 <main id="farm" class="screen">
   <div class="hud"><span>🪙 <b id="coins">0</b></span><span>🌱 <b id="seeds">0</b></span><span>✨ <b id="gseeds">0</b></span><span id="medals" hidden>🏅 <b id="medalN">0</b>/6</span><span id="trophy" hidden>🏆</span></div>
-  <div id="grid" class="grid"></div>
+  <div class="farm-viewport"><div id="grid" class="grid"></div></div>
   <aside class="board">
     <div id="pods" class="pods"></div>
     <button id="rocket" class="pod" aria-label="Mission Control">🚀</button>
@@ -205,15 +210,25 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
   <div id="placing" class="placing" hidden></div>
 </main>
 
+<main id="yard" class="screen">
+  <header class="yard-top"><h1>Robot Farm<span class="yard-subtitle">Your next farm adventure</span></h1><div id="yardCounts" class="yard-counts"></div></header>
+  <div class="yard-layout"><aside><h2>Your equipment jobs</h2><div id="yardJobs"></div></aside>
+    <section class="yard-adventure"><h2 id="yardTitle"></h2><div id="yardScene" class="island-scene"><canvas id="yardIsland" aria-hidden="true"></canvas></div><button id="yardStart" class="yard-start"></button></section>
+  </div>
+  <nav class="yard-nav"><button id="yardFarm" class="round" aria-label="Visit the farm"></button><button id="yardDrive" class="round" aria-label="Drive a tractor and trailer"></button><button id="yardCoop" class="round" aria-label="Mission Control"></button></nav>
+</main>
+
 <main id="mission" class="screen">
-  <div class="mtop"><button id="quit" class="round" aria-label="Back to the farm">🏡</button><div id="bag" class="bag"></div><button id="replay" class="round" aria-label="Hear it again">🔊</button></div>
+  <div class="mtop"><button id="quit" class="round" aria-label="Back to equipment jobs">🏡</button><div id="bag" class="bag"></div><button id="replay" class="round" aria-label="Hear it again">🔊</button></div>
   <div id="glitch" class="glitch" hidden><span>☁️</span></div>
+  <section class="mission-equipment"><h2 id="jobTitle"></h2><div id="jobScene" class="equipment-scene"></div></section>
+  <div id="jobAction" hidden><p id="actionTitle"></p><button id="actionGo" class="play" aria-label="Power up our farm machine">🚜</button></div>
   <div id="prompt" class="prompt"></div>
   <div id="opts" class="opts"></div>
 </main>
 
 <main id="coop" class="screen">
-  <div class="mtop"><button id="coopQuit" class="round" aria-label="Back to the farm">🏡</button><span class="ctitle">Mission Control</span><span style="width:72px"></span></div>
+  <div class="mtop"><button id="coopQuit" class="round" aria-label="Back to equipment jobs">🏡</button><span class="ctitle">Mission Control</span><span style="width:72px"></span></div>
   <div id="card" class="bigcard"></div>
   <div class="fuel"><div id="fuel"></div></div>
   <div id="ship" class="ship">🚀</div>
@@ -229,22 +244,42 @@ body:not([data-screen="farm"]):not([data-screen="start"]) .gear { display: none;
   <div id="pageGrid" class="page"></div>
 </main>
 
+<main id="drive" class="screen"></main>
+
 <main id="parent" class="screen"><div class="pwrap">
-  <div class="phead2"><h1>Grown-up area</h1><button id="parentBack">Back to the game</button></div>
+  <div class="phead2"><h1>Grown-up settings</h1><button id="parentBack">Back to the game</button></div>
   <div id="parentBody"></div>
 </div></main>
 
 <div id="bot" class="bot" aria-hidden="true"><span class="hat"></span><div class="head"><i></i><i></i><b></b></div><div class="body"></div></div>
-<button id="gear" class="gear" aria-label="Grown-ups: hold for 3 seconds">⚙️</button>
+<main id="progressReport" class="screen">
+  <nav class="report-toolbar" aria-label="Progress report actions"><button id="reportBack">Back to settings</button><button id="reportShare" disabled>Share image</button><button id="reportSave" disabled>Save image</button><button id="reportPrint">Print / PDF</button><button id="reportCopy">Copy summary</button></nav>
+  <p id="reportNotice" role="status"></p><div id="reportBody"></div>
+</main>
+<button id="gear" class="gear" aria-label="Grown-up settings: hold for 3 seconds or press Enter">⚙️</button>
 <div id="modal" class="modal" hidden></div>
 <div class="rotate">📱↪️</div>
 
 <script type="module">
 import * as L from './logic.js';
+import { TIME_KEY, emptyUsage, validUsage, createUsage, duration } from './usage-time.js';
+import { reportData, reportMarkup, reportImage } from './progress-report.js';
+import { PREF_KEY, ALPHABET, preferences, validPreferences, focusedLetters, focusContext } from './preferences.js';
+import { readProgress, writeProgress, validJobs } from './job-progress.js';
+import { art, robotArt } from './art.js';
+import { rankVoices, voiceQuality, audioPreferences, speechRate } from './presentation.js';
+import { sounds } from './sounds.js';
+import { narrationPlan, createNarrator } from './narration.js';
+import { NARRATION_CLIPS } from './narration-clips.js';
+import { createDriving } from './driving.js';
+import {farmWorld} from './adventure-world.js';
+import { JOBS, jobFor, equipmentProgress, jobIcon, createEquipment } from './equipment.js';
 
 const $ = s => document.querySelector(s);
 const el = (tag, cls = '', text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
-const button = (cls, text, fn) => { const b = el('button', cls, text); b.onclick = fn; return b; };
+const ICON = { '📖': 'book', '🪙': 'coin', '🌱': 'seed', '✨': 'goldseed', '🔎': 'search', '⛏️': 'pick', '🫧': 'pod', '🔠': 'twins', '☁️': 'glitch', '🚀': 'rocket', '🛒': 'shop', '🏡': 'home', '🔊': 'sound', '⚙️': 'gear', '🏅': 'medal', '🥕': 'carrot', '🌽': 'corn', '🍓': 'strawberry', '🎃': 'pumpkin', '🌳': 'tree', '🛸': 'ship', '🤖': 'bot', '⭐': 'star', '🌟': 'star', '🔙': 'back', '▶': 'play', '🧢': 'cap', '🎩': 'tophat', '👑': 'crown' };
+const button = (cls, text, fn) => { const b = el('button', cls); if (ICON[text]) { b.append(art(ICON[text])); b.setAttribute('aria-label', ICON[text]); } else b.textContent = text; b.onclick = fn; return b; };
+const putArt = (node, name) => node.replaceChildren(art(name));
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const qs = new URLSearchParams(location.search);
@@ -264,15 +299,35 @@ function newFarm() {
 }
 const fresh = () => ({
   v: 1, start: TODAY(),
-  settings: { child: '', color: '', voice: '', rate: 0.85, perDay: 3 },
+  settings: { child: '', color: '', voice: '', rate: 0.95, perDay: 3 },
   lists: [{ words: [...L.LIST_1], say: {} }], cur: 0,
   items: {}, day: { date: TODAY(), done: [], coop: 0 }, log: {},
   coins: 0, seeds: 3, goldSeeds: 0, hat: '', placing: null, newBots: [], streak: 0, best: { streak: 0 },
   farm: newFarm(),
 });
-let S = fresh();
-try { const s = JSON.parse(localStorage.getItem(KEY)); if (s?.v === 1) S = { ...fresh(), ...s, settings: { ...fresh().settings, ...s.settings } }; } catch {}
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { console.warn('save failed', e); } };
+let parentPrefs = preferences(null);
+try { parentPrefs = preferences(JSON.parse(localStorage.getItem(PREF_KEY))); } catch {}
+const focusKeys = () => focusedLetters(parentPrefs);
+const reducedMotion = () => parentPrefs.calm || matchMedia('(prefers-reduced-motion: reduce)').matches;
+const applyPreferences = () => document.body.classList.toggle('calm', parentPrefs.calm);
+applyPreferences();
+const heldPointers = new Set(), heldKeys = new Set();
+const usage = createUsage(localStorage, {engaged:() => heldPointers.size > 0 || heldKeys.size > 0});
+document.addEventListener('pointerdown', e => { heldPointers.add(e.pointerId); usage.input(); }, {passive:true});
+for (const event of ['pointerup','pointercancel']) window.addEventListener(event, e => { heldPointers.delete(e.pointerId); usage.input(); }, {passive:true});
+document.addEventListener('keydown', e => { heldKeys.add(e.code); usage.input(); }, {passive:true});
+window.addEventListener('keyup', e => { heldKeys.delete(e.code); usage.input(); }, {passive:true});
+document.addEventListener('input', () => usage.input(), {passive:true});
+const pauseUsage = () => { heldPointers.clear(); heldKeys.clear(); usage.pause(); };
+document.addEventListener('visibilitychange', () => document.hidden ? pauseUsage() : usage.resume());
+window.addEventListener('blur', pauseUsage);window.addEventListener('focus', () => usage.resume());
+window.addEventListener('pagehide', pauseUsage);
+window.addEventListener('pageshow', event => { if (event.persisted) usage.resume(); });
+setInterval(() => usage.flush(), 15000);
+let S = fresh(), jobSessions = [];
+const stored = readProgress(localStorage, KEY); jobSessions = stored.jobs;
+try { const s = JSON.parse(stored.raw); if (s?.v === 1) S = { ...fresh(), ...s, settings: { ...fresh().settings, ...s.settings } }; } catch {}
+const save = () => { try { checkpoint(); writeProgress(localStorage, KEY, S, jobSessions); return true; } catch (e) { console.warn('save failed', e); return false; } };
 
 const item = k => (S.items[k] ||= L.newItem());
 const peek = k => S.items[k] || L.newItem();
@@ -289,10 +344,13 @@ const logToday = k => { (S.log[TODAY()] ||= { m: 0, g: 0, c: 0 })[k]++; };
 // Mastery can happen on a solo tap or a read-aloud; collect it for a "bot rescued!" party.
 function track(k, fn) { const it = item(k), was = L.isMastered(it); fn(it); if (!was && L.isMastered(it)) S.newBots.push(k); }
 
-// ---------- sound effects (synthesized, gentle; no buzzers) ----------
-let ac;
+// ---------- original local clips, with gentle synthesis as a fallback ----------
+let ac, sound;
+const AUDIO_KEY = 'robotfarm.audio.v1';
+let audioPrefs = audioPreferences(null);
+try { audioPrefs = audioPreferences(JSON.parse(localStorage.getItem(AUDIO_KEY))); } catch {}
 function tone(notes, dur = 0.12, type = 'sine', vol = 0.12) {
-  if (!ac) return;
+  if (!ac || FAST) return;
   let t = ac.currentTime;
   for (const f of notes) {
     const o = ac.createOscillator(), g = ac.createGain();
@@ -302,51 +360,97 @@ function tone(notes, dur = 0.12, type = 'sine', vol = 0.12) {
     t += dur * 0.8;
   }
 }
+function effect(name, fallback) { if (parentPrefs.effects && !sound?.play(name)) fallback(); }
 const sfx = {
-  pop: () => tone([880, 1175], 0.06),
-  gold: () => tone([660, 880, 1320], 0.11),
-  silver: () => tone([523, 659], 0.1),
-  soft: () => tone([392, 349], 0.16, 'triangle', 0.05),
-  coin: () => tone([988, 1319], 0.08, 'square', 0.04),
-  win: () => tone([523, 659, 784, 1047, 1319], 0.15),
+  pop: () => effect('tap', () => tone([660, 880], .08, 'triangle', .07)),
+  gold: () => effect('gold', () => tone([523, 659, 1047], .11)),
+  silver: () => effect('silver', () => tone([523, 659], .1, 'sine', .06)),
+  soft: () => effect('hmm', () => tone([330, 392], .16, 'sine', .04)),
+  coin: () => effect('coin', () => tone([988, 1319], .08, 'sine', .06)),
+  harvest: () => effect('harvest', () => tone([392, 784], .1, 'triangle', .07)),
+  bag: () => effect('bag', () => tone([523, 784, 1047], .15)),
+  rocket: () => effect('rocket', () => tone([180, 220, 260, 300], .1, 'triangle', .03)),
+  medal: () => effect('medal', () => tone([523, 784, 1047, 1319], .15)),
+  win: () => effect('complete', () => tone([523, 659, 784, 1047], .15)),
 };
 
 // ---------- voice ----------
 const synth = window.speechSynthesis;
 let voice = null;
 function pickVoice() {
-  const vs = synth?.getVoices() || [], us = vs.filter(v => v.lang === 'en-US');
-  voice = vs.find(v => v.voiceURI === S.settings.voice) || us.find(v => /enhanced|premium/i.test(v.name)) ||
-    us.find(v => /samantha/i.test(v.name)) || us[0] || vs.find(v => /^en/.test(v.lang)) || null;
+  const vs = rankVoices(synth?.getVoices() || []);
+  voice = vs.find(v => v.voiceURI === S.settings.voice) || vs[0] || null;
 }
+
 if (synth) { pickVoice(); synth.onvoiceschanged = pickVoice; }
-let talkId = 0;
-function say(text) {
+let talkId = 0, currentSpeech = Promise.resolve(), finishSpeech, cancelDevice;
+const narrator = createNarrator();
+function stopSpeech() {
+  ++talkId; narrator.stop(); synth?.cancel(); cancelDevice?.(); cancelDevice=null; finishSpeech?.();
+}
+window.addEventListener('pagehide', stopSpeech);
+function say(text, previewURI = null, previewRate = S.settings.rate) {
   console.debug('🤖', text);
-  const id = ++talkId, bot = $('#bot');
-  return new Promise(res => {
+  stopSpeech();
+  const id = talkId, bot = $('#bot'), rate = speechRate(previewRate);
+  sound?.speech(true);
+  currentSpeech = new Promise(res => {
     let done = false;
-    const fin = () => { if (done) return; done = true; if (id === talkId) bot.classList.remove('talk'); res(); };
-    if (FAST || !synth) return setTimeout(fin, FAST ? 30 : 400 + text.length * 70);
-    setTimeout(fin, 1500 + text.length * 90 / S.settings.rate); // iOS sometimes never fires onend
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    if (voice) u.voice = voice;
-    u.lang = 'en-US'; u.rate = S.settings.rate;
-    u.onend = u.onerror = fin;
+    const fin = () => { if (done) return; done = true; bot.classList.remove('talk'); sound?.speech(false); res(); };
+    finishSpeech = fin;
+    if (FAST) return setTimeout(fin, 30);
     bot.classList.add('talk');
+    const recorded = [null, '', '__helena__'].includes(previewURI) && (previewURI !== null || !S.settings.voice);
+    const plan = recorded ? narrationPlan(text) : [{text}];
+    (async () => {
+      for (const part of plan) {
+        if (id !== talkId) break;
+        if (part.file && await narrator.play(part, rate)) continue;
+        if (id !== talkId) break;
+        await deviceSpeech(part.text, previewURI, rate);
+      }
+    })().catch(e => console.warn('Narration unavailable', e)).finally(() => { if (id === talkId) fin(); });
+  });
+  return currentSpeech;
+}
+function deviceSpeech(text, previewURI, rate) {
+  return new Promise(res => {
+    let done=false, watchdog;
+    const fin=()=>{if(done)return;done=true;clearTimeout(watchdog);res();};
+    cancelDevice = fin;
+    if (!synth) return setTimeout(fin, 400 + text.length * 70);
+    watchdog=setTimeout(()=>{synth.cancel();fin();},1500+text.length*90/rate);
+    const u=new SpeechSynthesisUtterance(text), available=rankVoices(synth.getVoices());
+    pickVoice();
+    const selected=previewURI && !['__helena__','__device__'].includes(previewURI) ? available.find(v=>v.voiceURI===previewURI)||available[0] : voice;
+    if(selected)u.voice=selected;
+    u.lang=selected?.lang||'en-US';u.rate=rate;u.pitch=1;u.onend=u.onerror=fin;
     synth.speak(u);
   });
 }
+async function speechIdle() {
+  let pending;
+  do { pending = currentSpeech; await pending; } while (pending !== currentSpeech);
+}
 
 // ---------- screens & helpers ----------
+let walkTimer, driver;
 function show(id) {
+  stopSpeech();
+  if (id !== 'drive') driver?.stop();
+  clearTimeout(walkTimer);
+  if (id === 'farm') walkTimer = setTimeout(wanderBots, FAST ? 1200 : 12000);
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
-  document.body.dataset.screen = id;
+  document.body.dataset.screen = id; sound?.scene(id);
+  usage.activity(id === 'mission' ? $('#jobTitle').textContent + ' · reading job' : ({start:'Welcome screen',yard:'Equipment hub',farm:'Farm play',drive:'Tractor driving',coop:'Grown-up read-aloud',page:'Practice page',parent:'Grown-up settings',progressReport:'Progress report'}[id] || id));
 }
 function applyLook() {
   document.body.style.setProperty('--bot', S.settings.color || COLORS[0]);
-  $('#bot .hat').textContent = S.hat || '';
+  const palette = { '#3b82f6': ['#85bed0', '#377286'], '#22c55e': ['#a9d2a1', '#477858'], '#f59e0b': ['#e9cb8b', '#9a763c'], '#a855f7': ['#c8b5df', '#75618d'] };
+  const [light, dark] = palette[S.settings.color] || palette[COLORS[0]];
+  document.body.style.setProperty('--bot-light', light); document.body.style.setProperty('--bot-dark', dark);
+  $('#bot .hat').replaceChildren();
+  if (S.hat && ICON[S.hat]) $('#bot .hat').append(art(ICON[S.hat]));
 }
 const happy = () => { const b = $('#bot'); b.classList.remove('happy'); void b.offsetWidth; b.classList.add('happy'); };
 const modal = $('#modal');
@@ -357,10 +461,12 @@ function openModal(title, sticky = false) {
   modal.append(box);
   return box;
 }
-function closeModal() { modal.hidden = true; modal.replaceChildren(); }
+let rewardTimer;
+function closeModal() { clearTimeout(rewardTimer); modal.hidden = true; modal.replaceChildren(); sound?.scene(document.body.dataset.screen); }
 modal.onclick = e => { if (e.target === modal && !modal.dataset.sticky) closeModal(); };
 function floaty(from, text) {
-  const r = from.getBoundingClientRect(), f = el('div', 'floaty', text);
+  const r = from.getBoundingClientRect(), f = el('div', 'floaty', text.replace('🪙', '').trim());
+  if (text.includes('🪙')) f.append(art('coin'));
   f.style.left = r.left + r.width / 2 + 'px'; f.style.top = r.top + 'px';
   document.body.append(f); setTimeout(() => f.remove(), 1000);
 }
@@ -368,7 +474,9 @@ async function celebrateBots() {
   const ks = S.newBots.splice(0); save();
   if (!ks.length) return;
   const box = openModal('', true);
-  box.append(el('div', 'sum', '🤖'.repeat(Math.min(ks.length, 6))), el('div', 'sum', ks.slice(0, 8).map(L.keyText).join('  ')));
+  const crew = el('div', 'sum');
+  ks.slice(0, 6).forEach(() => crew.append(art('botHappy')));
+  box.append(crew, el('div', 'sum teaching', ks.slice(0, 8).map(L.keyText).join('  ')));
   sfx.win(); happy();
   await say(ks.length === 1 ? `You rescued a bot! It loves ${speak(ks[0])}!` : `You rescued ${ks.length} bots! They moved onto your farm!`);
   await sleep(700); closeModal();
@@ -377,7 +485,7 @@ async function celebrateBots() {
 // ---------- start ----------
 $('#play').onclick = () => {
   ac ||= new (window.AudioContext || window.webkitAudioContext)();
-  ac.resume();
+  ac.resume().catch(() => {}); sound ||= sounds(ac, FAST, audioPrefs);
   if (synth && !FAST) synth.speak(new SpeechSynthesisUtterance(' ')); // iOS: the first speech must come from a tap
   navigator.storage?.persist?.();
   sfx.pop();
@@ -417,49 +525,75 @@ const THING = Object.fromEntries([...SHOP, { id: 'ship', e: '🛸', name: 'space
 let greeted = false;
 
 function goFarm() {
-  rollDay(); closeModal(); show('farm'); renderFarm();
+  rollDay(); closeModal(); renderFarm(); renderYard(); show(S.placing ? 'farm' : 'yard');
   if (S.party) return medalParty();
   if (S.placing) return say(`Tap an empty spot for your ${THING[S.placing].name}!`);
   if (greeted) return;
   greeted = true;
-  const ready = S.farm.some(t => t.crop && L.cropStage(t.crop, TODAY()) === 'ready');
-  say(`Hi ${S.settings.child || 'friend'}! ` + (ready ? 'Your crops are ready. Tap them to pick them!' : 'Pick a mission!'));
+  say(`Hi ${S.settings.child || 'friend'}! Let’s get our farm machines ready. Tap the big play button to start a job.`);
 }
 
-async function medalParty() { // the teacher said he passed a list
+async function medalParty() {
   S.party = false; save();
-  const box = openModal('', true), m = el('div', 'sum', '🏅');
-  m.style.fontSize = '150px'; box.append(m);
-  sfx.win(); happy();
-  await say(`You passed your heart word list! You earned a medal! That's ${S.lists.filter(l => l.passed).length} of 6!`);
-  await sleep(800); closeModal();
+  const box = openModal('', true), medal = el('div', 'reward-hero'); medal.append(art('medal'));
+  const count = S.lists.filter(l => l.passed).length;
+  box.append(medal, el('div', 'reward-count', `${count} / 6`));
+  const leave = () => { closeModal(); stopSpeech(); };
+  box.append(button('play small', '🏡', leave));
+  sound?.scene('reward'); sfx.medal(); happy(); confetti();
+  rewardTimer = setTimeout(leave, FAST ? 380 : 3800);
+  await say('You earned a medal! Great reading.');
 }
 
+const botAt = new Map();
 function renderFarm() {
-  $('#coins').textContent = S.coins; $('#seeds').textContent = S.seeds; $('#gseeds').textContent = S.goldSeeds;
+  countTo($('#coins'), S.coins); countTo($('#seeds'), S.seeds); countTo($('#gseeds'), S.goldSeeds);
   const medals = S.lists.filter(l => l.passed).length;
   $('#medals').hidden = !medals; $('#medalN').textContent = medals;
-  $('#trophy').hidden = !(curList().ready && !curList().passed); // READY TO TEST: time to send the teacher a note
-  const d = TODAY();
-  const bots = L.shuffle(Object.keys(S.items).filter(k => L.isMastered(S.items[k])));
-  const open = L.shuffle(S.farm.map((_, i) => i).filter(i => S.farm[i].t === 'grass' && !S.farm[i].thing));
-  const botAt = new Map(open.slice(0, Math.min(14, bots.length)).map((i, n) => [i, bots[n]])); // rescued bots wander
-  $('#grid').replaceChildren(...S.farm.map((t, i) => {
-    const b = el('button', 'tile ' + t.t);
+  $('#trophy').hidden = !(curList().ready && !curList().passed);
+  const d = TODAY(), grid = $('#grid');
+  if (!grid.children.length) S.farm.forEach((_, i) => {
+    const b = el('button', 'tile'); b.onclick = () => tapTile(i, b); grid.append(b);
+  });
+  for (const [i, k] of botAt) if (S.farm[i].t !== 'grass' || S.farm[i].thing || !L.isMastered(peek(k))) botAt.delete(i);
+  const bots = Object.keys(S.items).filter(k => L.isMastered(S.items[k])).slice(0, 14);
+  const open = S.farm.map((_, i) => i).filter(i => S.farm[i].t === 'grass' && !S.farm[i].thing && !botAt.has(i));
+  for (const k of bots) if (![...botAt.values()].includes(k) && open.length) botAt.set(open.shift(), k);
+  S.farm.forEach((t, i) => {
+    const b = grid.children[i], st = t.crop ? L.cropStage(t.crop, d) : '', k = botAt.get(i);
+    const signature = [t.t, t.thing, t.crop?.kind, t.crop?.gold, st, k].join('|');
+    if (b.dataset.signature === signature) return;
+    b.dataset.signature = signature; b.className = 'tile ' + t.t; b.replaceChildren(); delete b.dataset.say;
     if (t.crop) {
-      const st = L.cropStage(t.crop, d);
-      b.textContent = st === 'ready' ? CROPS[t.crop.kind] : '🌱';
-      b.classList.add(st);
+      b.append(art(st === 'ready' ? t.crop.kind : st === 'sprout' ? 'sprout' : 'planted')); b.classList.add(st);
       if (t.crop.gold) b.classList.add('golden');
-    } else if (t.thing) b.textContent = THING[t.thing].e;
-    else if (botAt.has(i)) { const k = botAt.get(i); b.append(el('span', 'mini', '🤖'), el('small', '', L.keyText(k))); b.dataset.say = speak(k); }
-    b.onclick = () => tapTile(i, b);
-    return b;
-  }));
+      b.setAttribute('aria-label', t.crop.kind + ' ' + st);
+    } else if (t.thing) { b.append(art(t.thing)); if (THING[t.thing].kind === 'animal') b.classList.add('animal'); b.setAttribute('aria-label', THING[t.thing].name); }
+    else if (k) { b.append(art('bot', 'mini'), el('small', '', L.keyText(k))); b.dataset.say = speak(k); b.setAttribute('aria-label', 'Rescued bot ' + L.keyText(k)); }
+    else b.setAttribute('aria-label', t.t === 'soil' ? 'Plant here' : 'Empty ' + t.t);
+  });
   document.body.classList.toggle('placing', !!S.placing);
   $('#placing').hidden = !S.placing;
-  if (S.placing) $('#placing').textContent = '👆 ' + THING[S.placing].e;
+  if (S.placing) $('#placing').replaceChildren(art('hand'), art(S.placing));
   renderPods();
+}
+function wanderBots() {
+  if (document.body.dataset.screen !== 'farm') return;
+  const occupied = [...botAt.keys()];
+  if (occupied.length) {
+    const from = pick(occupied), k = botAt.get(from);
+    const open = S.farm.map((t, i) => i).filter(i => S.farm[i].t === 'grass' && !S.farm[i].thing && !botAt.has(i));
+    if (open.length) {
+      const to = pick(open); botAt.delete(from); botAt.set(to, k); renderFarm();
+      const node = $('#grid').children[to].querySelector('.mini'), cell = $('#grid').children[to].getBoundingClientRect();
+      if (!reducedMotion()) {
+        node.style.transform = `translate(${((from % 10) - (to % 10)) * cell.width}px, ${(Math.floor(from / 10) - Math.floor(to / 10)) * cell.height}px)`;
+        node.style.transition = 'transform 1.2s ease-in-out';
+        requestAnimationFrame(() => requestAnimationFrame(() => { node.style.transform = ''; }));
+      }
+    }
+  }
+  walkTimer = setTimeout(wanderBots, 12000);
 }
 
 function tapTile(i, b) {
@@ -469,7 +603,7 @@ function tapTile(i, b) {
     const st = L.cropStage(t.crop, d);
     if (st !== 'ready') return say(st === 'sprout' ? 'It is growing! Come back tomorrow.' : 'Just planted! Come back tomorrow.');
     const n = t.crop.gold ? 10 : 2;
-    S.coins += n; delete t.crop; save(); sfx.coin(); floaty(b, `+${n} 🪙`); renderFarm();
+    S.coins += n; delete t.crop; save(); sfx.harvest(); floaty(b, `+${n} 🪙`); renderFarm();
     return say(pick(['Yum!', 'Nice picking!', 'Harvest time!']));
   }
   if (t.t === 'soil') return S.seeds || S.goldSeeds ? chooseCrop(i) : say('You need seeds. Go on a mission to get more!');
@@ -486,7 +620,10 @@ function chooseCrop(i) {
   for (const gold of [false, true]) {
     if (gold ? !S.goldSeeds : !S.seeds) continue;
     const r = el('div', 'row');
-    for (const [kind, e] of Object.entries(CROPS)) r.append(button('choice' + (gold ? ' golden' : ''), e, () => plant(i, kind, gold)));
+    for (const [kind, e] of Object.entries(CROPS)) {
+      const b = button('choice' + (gold ? ' golden' : ''), e, () => plant(i, kind, gold));
+      b.setAttribute('aria-label', (gold ? 'Golden ' : '') + kind); r.append(b);
+    }
     box.append(r);
   }
   say(S.goldSeeds ? 'What do you want to plant? The shiny ones are golden!' : 'What do you want to plant?');
@@ -505,7 +642,8 @@ function openShop() {
   let sel = null;
   for (const it of SHOP) {
     const b = el('button', 'shop-item' + (S.coins < it.price ? ' dim' : ''));
-    b.append(el('span', 'e', it.e), el('span', 'p', `${it.price} 🪙`));
+    const image = el('span', 'e'), price = el('span', 'p', it.price);
+    image.append(art(it.id)); price.append(art('coin')); b.append(image, price); b.setAttribute('aria-label', `${it.name}, ${it.price} coins`);
     b.onclick = () => {
       const roomy = it.kind === 'hat' || S.farm.some(t => t.t === 'grass' && !t.thing);
       if (sel === b && S.coins >= it.price && roomy) return buy(it); // second tap buys
@@ -534,11 +672,11 @@ function place(i) {
 
 // ---------- mission board ----------
 const MISSION = {
-  hunt: { icon: '🔎', intro: 'Word Hunt! Find the heart word I say.' },
-  pods: { icon: '🫧', intro: 'Rescue Pods! Find the pod with my heart word.' },
-  letters: { icon: '⛏️', intro: 'Letter Mine! Find the letter I say.' },
-  twins: { icon: '🔠', intro: 'Twin Match! Every big letter has a little twin.' },
-  boss: { icon: '☁️', intro: 'Oh no! Glitch scrambled the farm! Read carefully to fix it.' },
+  hunt: { icon: '🔎', intro: 'Find the Heart Word I say.' },
+  pods: { icon: '🫧', intro: 'Find the Heart Word I say.' },
+  letters: { icon: '⛏️', intro: 'Find the letter I say.' },
+  twins: { icon: '🔠', intro: 'Every big letter has a little twin.' },
+  boss: { icon: '☁️', intro: 'Glitch mixed up our machine! Read carefully to fix it.' },
 };
 function todaysMissions() {
   const words = wordKeys(), hasWords = words.length >= 2;
@@ -558,6 +696,36 @@ function renderPods() {
 $('#rocket').onclick = () => { say('Mission Control! Get a grown-up.'); gate(() => startCoop()); };
 $('#shopBtn').onclick = openShop;
 
+// Equipment jobs wrap the existing daily mission slots; they add no learning state.
+function dailyJob(n) { return jobFor(dayIndex(), S.settings.perDay, n); }
+const yardWorld = farmWorld($('#yardIsland'));
+function renderYard() {
+  const missions = todaysMissions(), next = missions.findIndex((_, n) => !S.day.done.includes(n));
+  const selected = next < 0 ? missions.length - 1 : next, job = dailyJob(selected);
+  $('#yardJobs').replaceChildren(...missions.map((type, n) => {
+    const done = S.day.done.includes(n), j = dailyJob(n), paused = pausedJob(type, n);
+    const b = button('yard-job' + (done ? ' done' : '') + (n === next ? ' selected' : ''), '', () =>
+      done ? openReader(j) : startMission(type, n));
+    b.append(jobIcon(j), el('span', '', JOBS[j].name));
+    if (done) b.append(art('star'));
+    else if (paused) b.append(el('small', 'paused-job', `${paused.m.golds} / 10 · Resume`));
+    b.setAttribute('aria-label', JOBS[j].name + (done ? ', complete' : paused ? ', resume saved job' : ''));
+    return b;
+  }));
+  $('#yardTitle').textContent = next < 0 ? 'Our machines are ready!' : JOBS[job].name;
+  const paused = next < 0 ? null : pausedJob(missions[next], next);
+  yardWorld.resize();
+  $('#yardStart').replaceChildren(art(next < 0 ? 'tractor' : 'play'), el('span', '', next < 0 ? 'Pick a road' : paused ? 'Resume our farm job' : 'Start our farm job'));
+  $('#yardStart').onclick = () => next < 0 ? openRoads() : startMission(missions[next], next);
+  $('#yardCounts').replaceChildren(...[['seed', S.seeds], ['coin', S.coins]].map(([name, value]) => {
+    const count = el('span'); count.append(art(name), el('b', '', value)); return count;
+  }));
+}
+function openRoads() { closeModal(); show('drive'); driver.openRoads(); }
+$('#yardFarm').onclick = () => { show('farm'); renderFarm(); say('Here is your farm. Tap a crop to harvest, or the tractor to drive.'); };
+$('#yardDrive').onclick = openRoads;
+$('#yardCoop').onclick = () => $('#rocket').click();
+
 // ---------- missions ----------
 const WORD_FONTS = ['Andika, Verdana, sans-serif', 'Verdana, sans-serif', 'Georgia, serif', 'Futura, "Avenir Next", sans-serif', '"Avenir Next", Avenir, sans-serif', '"Chalkboard SE", "Comic Sans MS", sans-serif'];
 // Mixed fonts so he knows a/ɑ and g/ɡ in any print. Checked by eye: Verdana, Georgia and Andika keep capital I and lowercase l
@@ -568,8 +736,34 @@ function fontFor(keys) {
   if (!keys.some(L.isLetterKey)) return fontPick(WORD_FONTS);
   return fontPick(keys.some(k => 'Il'.includes(L.keyText(k))) ? LETTER_FONTS.slice(0, 3) : LETTER_FONTS);
 }
-const PRAISE = ['Yes!', 'You got it!', 'Great looking!', 'Super reading!', 'Awesome!', 'You looked carefully!', 'Nice one!'];
+function answerPraise(target, result, elapsed, known) {
+  if (result === 'silver') return pick(['You kept trying!', 'You figured it out!', 'You fixed it!']);
+  const lines = ['You got it!', 'You did it! Let’s keep going!', 'Look how much you’re learning!'];
+  if (!L.isLetterKey(target)) lines.push('You read that word!');
+  if (known) lines.push('You remembered that one!');
+  if (elapsed >= 3000) lines.push('Nice job looking closely!', 'You took your time!');
+  return pick(lines);
+}
 let M = null, qGen = 0;
+const jobContext = type => focusContext(type, JSON.stringify([TODAY(), S.start, S.cur, S.settings.perDay, wordKeys()]), parentPrefs);
+function pausedJob(type, n) { return jobSessions.find(j => j.context === jobContext(type) && j.type === type && j.n === n); }
+function checkpoint() {
+  // Rotating daily jobs must still bank any gold earned before the browser closed.
+  for (const j of jobSessions.filter(j => j.context !== jobContext(j.type))) {
+    if (M?.phase && M.n === j.n && M.type === j.type) payJobSeeds();
+    else S.seeds += j.m.golds - j.paidGold;
+  }
+  jobSessions = jobSessions.filter(j => j.context === jobContext(j.type) && !S.day.done.includes(j.n));
+  if (!M?.phase) return;
+  const { type, n, job, m, ease, phase, question, paidGold } = M;
+  jobSessions = jobSessions.filter(j => j.n !== n);
+  jobSessions.push(structuredClone({ context: jobContext(type), type, n, job, m, ease, phase, question, paidGold }));
+}
+function payJobSeeds() {
+  S.seeds += M.m.golds - M.paidGold;
+  M.paidGold = M.m.golds;
+}
+
 
 async function startMission(type, n) {
   const words = wordKeys();
@@ -577,22 +771,29 @@ async function startMission(type, n) {
   if (type === 'boss') queue = L.buildQueue([], L.shuffle([...words, ...L.LETTER_KEYS].filter(k => L.isKnown(peek(k)))), L.CAP + 2);
   else {
     const isL = type === 'letters' || type === 'twins';
-    const { focus, known } = L.pickFocus(isL ? L.LETTER_KEYS : listKeys(curList()), isL ? L.LETTER_KEYS : words, S.items);
+    const { focus, known } = L.pickFocus(isL ? focusKeys() : listKeys(curList()), isL ? focusKeys() : words, S.items);
     queue = L.buildQueue(focus, known, L.CAP + 2);
   }
-  M = { type, n, m: L.createMission(queue), ease: false, prompt: '' };
-  show('mission'); renderBag();
+  const paused = pausedJob(type, n);
+  M = paused ? structuredClone(paused) : { type, n, job: dailyJob(n), m: L.createMission(queue), ease: false, prompt: '', paidGold: 0 };
+  $('#jobTitle').textContent = JOBS[M.job].name;
+  M.equipment = createEquipment($('#jobScene'), M.job, equipmentProgress(M.m));
+  $('#mission').classList.remove('action'); $('#jobAction').hidden = true; $('#replay').disabled = false;
+  show('mission'); $('#mission').dataset.type = type; renderBag();
   $('#prompt').className = 'prompt'; $('#prompt').textContent = ''; $('#opts').replaceChildren();
   $('#glitch').hidden = type !== 'boss'; $('#glitch').style.transform = '';
   const g = ++qGen;
-  await say(MISSION[type].intro);
-  if (g === qGen) nextQ();
+  await say(paused ? `Welcome back, ${S.settings.child || 'friend'}! Let’s finish our farm job.` : `Let’s go, ${S.settings.child || 'friend'}! ` + JOBS[M.job].intro + ' ' + MISSION[type].intro);
+  if (g !== qGen) return;
+  if (M.phase === 'question') return drawQuestion(g);
+  if (M.phase === 'action') return actionBreak(g);
+  nextQ();
 }
 
 function promptText(target) {
   const s = speak(target);
-  if (!L.isLetterKey(target)) return M.type === 'hunt' ? `Find the word: ${s}.` : `Find ${s}!`;
-  if (M.type !== 'twins') return `Find ${s}!`;
+  if (!L.isLetterKey(target)) return M.type === 'hunt' ? `Find the word. ${s}.` : `Find ${s}.`;
+  if (M.type !== 'twins') return `Find ${s}.`;
   return L.isUpper(L.keyText(target)) ? `This is little ${s}. Find big ${s}!` : `This is big ${s}. Find little ${s}!`;
 }
 const lock = () => { $('#opts').classList.add('locked'); $('#opts').querySelectorAll('.opt').forEach(b => { b.disabled = true; }); };
@@ -615,30 +816,41 @@ async function nextQ() {
   const opts = L.placeTarget(raw, target, m.lastPos);
   const t = L.keyText(target), twinKey = twin ? 'L:' + (L.isUpper(t) ? t.toLowerCase() : t.toUpperCase()) : null;
   const font = fontFor(twinKey ? [...opts, twinKey] : opts);
+  M.question = { options: opts, font, wrong: [], hint: false, teach: L.isNew(it) && M.type !== 'boss' };
+  M.phase = 'question'; save();
+  return drawQuestion(g);
+}
+async function drawQuestion(g) {
+  const target = M.m.current, isL = L.isLetterKey(target), twin = M.type === 'twins';
+  const { options: opts, font, wrong, hint, teach } = M.question;
+  const t = L.keyText(target), twinKey = twin ? 'L:' + (L.isUpper(t) ? t.toLowerCase() : t.toUpperCase()) : null;
+  const layout = M.type === 'hunt' ? 'grid' : isL ? 'blocks' : 'pods';
   const box = $('#opts'), card = $('#prompt');
-  box.className = 'opts locked ' + layout;
+  box.className = 'opts locked ' + layout; box.dataset.count = opts.length;
   box.replaceChildren(...opts.map(k => {
-    const b = button('opt', L.keyText(k), () => tapOpt(b, k, target, g));
+    const b = button('opt' + (wrong.includes(k) ? ' faded' : '') + (hint && k === target ? ' hint' : ''), L.keyText(k), () => tapOpt(b, k, target, g));
     b.dataset.k = k; b.disabled = true; b.style.fontFamily = font;
     return b;
   }));
   card.className = 'prompt'; card.textContent = ''; card.style.fontFamily = font;
-  if (L.isNew(it) && M.type !== 'boss') { // teach it before asking it
+  if (teach) { // teach it before asking it
     card.className = 'prompt teach'; card.textContent = t; box.classList.add('hidden');
     await say(isL ? `This is ${caseWord(target)} ${speak(target)}. Say ${speak(target)}!` : `This word is ${speak(target)}. Say ${speak(target)}!`);
     await sleep(1600); // time for him to say it
     if (g !== qGen) return;
     box.classList.remove('hidden'); card.className = 'prompt'; card.textContent = '';
+    M.question.teach = false; save();
   }
   if (twin) { card.className = 'prompt twin'; card.textContent = L.keyText(twinKey); }
   M.prompt = promptText(target);
   await say(M.prompt);
+  await speechIdle();
   if (g === qGen) unlock(); // buttons stay locked until the prompt is finished
 }
 
 async function tapOpt(b, k, target, g) {
   if (g !== qGen || b.disabled) return;
-  const quick = performance.now() - M.openedAt < 700;
+  const elapsed = performance.now() - M.openedAt, quick = elapsed < 700, known = L.isKnown(peek(target));
   const r = L.answer(M.m, k === target);
   lock();
   if (r === 'gold' || r === 'silver') {
@@ -650,30 +862,109 @@ async function tapOpt(b, k, target, g) {
       sfx.gold(); flySeed(b); logToday('g');
       if (++S.streak > S.best.streak) { S.best.streak = S.streak; if (S.streak >= 10 && S.streak % 5 === 0) record = S.streak; }
     } else sfx.silver();
-    save();
+    M.phase = 'advance'; M.ease = r === 'silver'; save();
+    machineBurst();
+    M.equipment.paint(equipmentProgress(M.m));
+    await sleep(400); // Finish the equipment action before the next spoken question.
+    if (g !== qGen) return;
     if (record) { happy(); await say(`New record! ${record} in a row!`); }
-    else await say(r === 'gold' ? pick(PRAISE) : `Yes! That's ${speak(target)}. Say ${speak(target)}!`);
+    else await say(r === 'gold' ? answerPraise(target, r, elapsed, known) : `${answerPraise(target, r, elapsed, known)} That’s ${speak(target)}. Say ${speak(target)}!`);
     if (r === 'silver') await sleep(1200);
     if (g !== qGen) return;
-    M.ease = r === 'silver'; // right after a miss, the next one is quietly easier
+    if ((M.m.golds + M.m.silvers) % 3 === 0 && !L.missionDone(M.m)) { M.phase = 'action'; save(); return actionBreak(g); }
     return nextQ();
   }
-  b.classList.add('faded'); sfx.soft();
+  b.classList.add('faded'); sfx.soft(); curious();
   if (M.type === 'boss') wobbleGlitch(false);
-  if (r === 'miss') { track(target, it => L.recordSolo(it, 'miss', TODAY())); S.streak = 0; save(); }
+  if (r === 'miss') { track(target, it => L.recordSolo(it, 'miss', TODAY())); S.streak = 0; }
   else $('#opts').querySelector(`[data-k="${CSS.escape(target)}"]`)?.classList.add('hint'); // 2nd miss: show which one
-  await say((quick ? 'Eagle eyes! Look carefully. ' : 'Hmm, look again. ') + M.prompt);
+  M.question.wrong = [...document.querySelectorAll('#opts .faded')].map(b => b.dataset.k);
+  M.question.hint = !!$('#opts .hint'); save();
+  await say((quick ? 'Look carefully. Try again. ' : 'Hmm, look again. ') + M.prompt);
+  await speechIdle();
   if (g === qGen) unlock();
+}
+
+// Action happens between questions, so the listening screen stays still.
+function machineBurst(big = false) {
+  if (reducedMotion()) return;
+  const scene = $('#jobScene');
+  for (let i = 0; i < (big ? 12 : 6); i++) {
+    const spark = el('i', 'machine-spark', ['★','✦','●'][i % 3]);
+    scene.append(spark);
+    const angle = i * Math.PI * 2 / (big ? 12 : 6), distance = big ? 130 : 65;
+    const motion = spark.animate([
+      { transform: 'translate(-50%,-50%) scale(.3)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(angle)*distance}px),calc(-50% + ${Math.sin(angle)*distance}px)) scale(1)`, opacity: 0 }
+    ], { duration: FAST ? 40 : big ? 750 : 350, easing: 'ease-out' });
+    motion.onfinish = motion.oncancel = () => spark.remove();
+  }
+}
+const ACTIONS = [
+  ['Tractor turbo!', 'Let’s boost our tractor! Tap the big button.'],
+  ['Tractor turbo!', 'Let’s boost our tractor! Tap the big button.'],
+  ['Lift the cargo!', 'Time to lift our cargo! Tap the big button.'],
+  ['Popcorn party!', 'Let’s pop our corn! Tap the big button.']
+];
+async function actionBreak(g) {
+  const mission = M, panel = $('#jobAction'), go = $('#actionGo');
+  lock(); $('#mission').classList.add('action'); panel.hidden = false;
+  $('#actionTitle').textContent = ACTIONS[M.job][0];
+  go.replaceChildren(jobIcon(M.job)); go.disabled = true;
+  $('#replay').disabled = true;
+  await say(ACTIONS[M.job][1]); await speechIdle();
+  if (g !== qGen || M !== mission) return;
+  go.disabled = false;
+  go.onclick = async () => {
+    if (g !== qGen || M !== mission || go.disabled) return;
+    go.disabled = true; M.phase = 'advance'; save();
+    machineBurst(true); sfx.harvest();
+    const machine = $('#jobScene .equipment-travel');
+    const motion = reducedMotion() ? null : machine?.animate([
+      { transform: 'translateX(0)' }, { transform: 'translateX(35px) translateY(-8px)' }, { transform: 'translateX(0)' }
+    ], { duration: FAST ? 75 : 750, easing: 'ease-in-out' });
+    await sleep(800);
+    motion?.cancel();
+    if (g !== qGen || M !== mission) return;
+    panel.hidden = true; $('#mission').classList.remove('action'); $('#replay').disabled = false;
+    nextQ();
+  };
+}
+function readerPages() {
+  const available = wordKeys().filter(k => L.isKnown(peek(k))).map(L.keyText);
+  const stories = [['see me.', 'I can.', 'I can get him.'], ['I like him.', 'I see him.', 'I can get him.']];
+  const story = stories.find(pages => pages.every(text => text.replace(/[.!]/g,'').split(' ').every(w => available.includes(w))));
+  return story || available.slice(0,3);
+}
+function openReader(job) {
+  closeModal(); stopSpeech();
+  const pages = readerPages();
+  if (!pages.length) return say('Keep practicing! We’ll read together when our words are ready.');
+  let page = 0;
+  const box = openModal('', true); box.classList.add('mini-reader');
+  const title = el('h2', '', 'Our farm story'), scene = el('div', 'reader-scene'), text = el('p', 'reader-text'), count = el('p', 'reader-count');
+  const controls = el('div', 'reader-controls');
+  const back = button('round', '◀', () => { if(page > 0){page--;paint();} }), help = button('round', '🔊', () => say(pages[page]));
+  const next = button('round', '▶', () => { if(page < pages.length-1){page++;paint();}else{closeModal();goFarm();} });
+  back.setAttribute('aria-label','Previous story page'); help.setAttribute('aria-label','Read this story page aloud'); next.setAttribute('aria-label','Next story page or finish');
+  const home = button('round', '🏡', () => {closeModal();goFarm();});home.setAttribute('aria-label','Back to jobs');
+  controls.append(back,help,next,home);box.append(title,scene,text,count,controls);
+  function paint(){createEquipment(scene,job,(page+1)/pages.length);text.textContent=pages[page];count.textContent=`${page+1} / ${pages.length}`;back.disabled=page===0;}
+  paint();say('Your turn! Try reading this page. Tap the sound button for help.');
 }
 
 function renderBag() {
   const m = M?.m;
-  if (m) $('#bag').replaceChildren(...Array.from({ length: m.nGold }, (_, i) => el('i', i < m.golds ? 'on' : '')));
+  if (m) {
+    $('#bag').replaceChildren(...Array.from({ length: m.nGold }, (_, i) => { const slot = el('i', i < m.golds ? 'on' : ''); if (i < m.golds) slot.append(art('seed')); return slot; }));
+    $('#bag').classList.toggle('full', m.golds >= m.nGold);
+  }
 }
 function flySeed(from) {
   const slot = $('#bag i:not(.on)');
   if (!slot) return renderBag();
-  const a = from.getBoundingClientRect(), b = slot.getBoundingClientRect(), s = el('div', 'fly', '🌱');
+  const a = from.getBoundingClientRect(), b = slot.getBoundingClientRect(), s = el('div', 'fly');
+  s.append(art('seed'));
   s.style.left = a.left + a.width / 2 + 'px'; s.style.top = a.top + a.height / 2 + 'px';
   document.body.append(s);
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -688,32 +979,45 @@ function wobbleGlitch(hit) {
 }
 
 async function finishMission() {
-  const { m, type, n } = M, full = m.golds >= m.nGold;
+  const { m, type, n, job } = M, full = m.golds >= m.nGold;
   renderBag();
-  S.seeds += m.golds;
+  payJobSeeds();
   if (full) S.goldSeeds++;
   if (type === 'boss') S.coins += 5;
   if (!S.day.done.includes(n)) S.day.done.push(n);
-  logToday('m'); save();
-  M = null; ++qGen;
+  logToday('m'); M = null; save();
+  ++qGen;
   sfx.win(); happy();
-  const box = openModal('', true);
-  box.append(el('div', 'sum', '🌱'.repeat(m.golds) || '⭐'));
-  if (full) box.append(el('div', 'sum', '✨🌟✨'));
-  if (type === 'boss') box.append(el('div', 'sum', '☁️💨 +5 🪙'));
-  box.append(button('play small', '🏡', () => { closeModal(); celebrateBots().then(goFarm); }));
-  const end = allDoneToday() ? (S.day.coop ? ' All missions done for today!' : ' All missions done! Now get a grown-up for Mission Control.') : '';
-  await say(`Mission complete! ${m.golds ? `You got ${m.golds} seeds` : 'Great work'}${full ? ' and a golden seed!' : '!'}` +
-    (type === 'boss' ? ' Glitch ran away and dropped five coins!' : '') + end);
+  const box = openModal('', true); sound?.scene('reward');
+  const hero = el('div', 'equipment-reward'); createEquipment(hero, job, 1);
+  box.classList.add('adventure-reward');
+  const star = art('star'); star.classList.add('reward-star'); box.append(star, el('h2', 'job-complete-title', 'You did it!'));
+  const count = el('div', 'reward-count'); if (m.golds) count.append(art('seed'), el('b', '', m.golds)); else count.append(art('star'));
+  if (full) count.append(el('span', '', '+'), art('goldseed'), el('b', '', 1));
+  box.append(hero, count);
+  if (type === 'boss') { const bonus = el('div', 'reward-count', '+5'); bonus.append(art('coin')); box.append(bonus); }
+  const leave = () => { closeModal(); stopSpeech(); celebrateBots().then(goFarm); };
+  box.append(button('play small', '🏡', leave));
+  const book = button('play small reader-open', '📖', () => openReader(job));
+  book.setAttribute('aria-label', 'Read our mini book'); box.append(book);
+  if (full) sfx.bag();
+  confetti(); rewardTimer = setTimeout(leave, FAST ? 380 : 3800);
+  await say(m.golds ? `Great reading! ${m.golds} seeds${full ? ', and a golden seed' : ''}.` : 'Great work, reader! Back to the farm.');
 }
 $('#quit').onclick = () => { // leaving early keeps every seed he earned
-  if (M) { S.seeds += M.m.golds; save(); }
-  M = null; ++qGen; synth?.cancel(); goFarm(); say('Okay! Back to the farm.');
+  if (M) { payJobSeeds(); save(); }
+  M = null; ++qGen; $('#jobAction').hidden = true; $('#mission').classList.remove('action'); $('#replay').disabled = false;
+  document.querySelectorAll('.machine-spark').forEach(e => {e.getAnimations().forEach(a => a.cancel());e.remove();}); stopSpeech(); goFarm(); say('Okay! Back to our jobs.');
 };
-$('#replay').onclick = () => { if (M?.prompt) say(M.prompt); };
+$('#replay').onclick = async () => {
+  if (!M?.prompt) return;
+  const mission = M, g = qGen; lock();
+  await say(M.prompt); await speechIdle();
+  if (M === mission && g === qGen) unlock();
+};
 
 // ---------- Mission Control: he reads out loud, a grown-up taps ----------
-let C = null;
+let C = null, coopGen = 0;
 function coopPick(keys) {
   const p = k => peek(k);
   const learning = L.shuffle(keys.filter(k => p(k).last && !L.isMastered(p(k))));
@@ -723,10 +1027,10 @@ function coopPick(keys) {
 }
 async function startCoop(keys = null, after = null) {
   closeModal();
-  C = { seq: keys ? L.reshuffle(keys) : [...coopPick(L.LETTER_KEYS), ...coopPick(wordKeys())], i: 0, fuel: 0, helped: new Set(), after, placement: !!keys };
-  show('coop'); $('#ship').className = 'ship'; $('#fuel').style.height = '0%'; $('#card').textContent = '🚀'; $('#answer').textContent = '';
+  const session = C = { generation: ++coopGen, seq: keys ? L.reshuffle(keys) : [...coopPick(focusKeys()), ...coopPick(wordKeys())], i: 0, fuel: 0, helped: new Set(), after, placement: !!keys };
+  show('coop'); $('#ship').className = 'ship'; $('#fuel').style.transform = 'scaleY(0)'; putArt($('#card'), 'rocket'); $('#answer').textContent = '';
   await say(keys ? 'Placement check! Read each one to your grown-up.' : 'Mission Control! Read each one to your grown-up. Every one you read fuels the rocket!');
-  coopShow();
+  if (C === session) coopShow();
 }
 function coopShow() {
   if (!C) return;
@@ -740,6 +1044,7 @@ function coopShow() {
 }
 document.querySelectorAll('.pstrip [data-r]').forEach(b => b.onclick = async () => {
   if (!C || C.busy || C.i >= C.seq.length) return;
+  const session = C;
   C.busy = true;
   const k = C.seq[C.i];
   let r = b.dataset.r;
@@ -755,23 +1060,25 @@ document.querySelectorAll('.pstrip [data-r]').forEach(b => b.onclick = async () 
     await sleep(800);
   } else {
     C.fuel++; sfx.gold();
-    $('#fuel').style.height = Math.min(100, 100 * C.fuel / C.seq.length) + '%';
+    $('#fuel').style.transform = `scaleY(${Math.min(1, C.fuel / C.seq.length)})`;
   }
+  if (C !== session) return;
   save();
-  if (!C) return;
   C.i++; C.busy = false; coopShow();
 });
 async function coopFinish() {
-  const after = C.after;
+  const after = C.after, generation = C.generation;
   C = null;
   if (!after) { S.day.coop++; logToday('c'); S.coins += 3; }
   save();
-  $('#ship').classList.add('launch'); sfx.win(); happy();
+  $('#ship').classList.add('launch'); sfx.rocket(); happy(); rocketSmoke();
   await say(after ? 'All done! Great reading!' : 'Three, two, one, blast off! Great reading! You earned three coins.');
+  if (coopGen !== generation || C || document.body.dataset.screen !== 'coop') return;
   await celebrateBots();
+  if (coopGen !== generation || C || document.body.dataset.screen !== 'coop') return;
   after ? after() : goFarm();
 }
-$('#coopQuit').onclick = () => { const after = C?.after; C = null; synth?.cancel(); save(); after ? after() : goFarm(); };
+$('#coopQuit').onclick = () => { const after = C?.after; coopGen++; C = null; stopSpeech(); save(); after ? after() : goFarm(); };
 
 // ---------- practice page: the teacher's shuffled-page format ----------
 function pageTest(keys, words) {
@@ -809,6 +1116,7 @@ const gear = $('#gear');
 gear.onpointerdown = () => { gear.classList.add('holding'); holdT = setTimeout(() => { gear.classList.remove('holding'); gate(() => openParent()); }, FAST ? 300 : 3000); };
 gear.onpointerup = gear.onpointerleave = gear.onpointercancel = () => { clearTimeout(holdT); gear.classList.remove('holding'); };
 gear.oncontextmenu = e => e.preventDefault();
+gear.onclick = e => { if (e.detail === 0) gate(() => openParent()); }; // Keyboard activation still requires the grown-up question.
 
 // ---------- grown-up area ----------
 function openParent(msg = '') { closeModal(); show('parent'); renderParent(msg); }
@@ -816,42 +1124,63 @@ $('#parentBack').onclick = goFarm;
 
 function renderParent(msg = '') {
   const chip = k => `<span class="chip ${status(peek(k))}">${esc(L.keyText(k))}</span>`;
-  const vs = (synth?.getVoices() || []).filter(v => /^en/i.test(v.lang));
+  const vs = rankVoices(synth?.getVoices() || []);
   const list = curList();
   $('#parentBody').innerHTML = `
-  ${msg ? `<div class="banner">${esc(msg)}</div>` : ''}
+  ${msg ? `<div class="banner" role="status">${esc(msg)}</div>` : ''}
+  <nav class="settings-nav" aria-label="Settings sections"><a href="#childSettings">Child</a><a href="#wordSettings">Words</a><a href="#letterSettings">Letters</a><a href="#playSettings">Play &amp; sound</a><a href="#backupSettings">Backup</a></nav>
+  <section id="childSettings"><h2>Your child</h2>
+    <label>Child's name (the robot says it)<input id="setChild" value="${esc(S.settings.child)}" maxlength="30" autocomplete="off" placeholder="e.g. Alex"></label>
+    <p class="hint">Leave blank to use “friend.” The name and learning progress stay on this device.</p>
+    <div class="btns"><button data-act="saveSettings">Save settings</button><button data-act="testVoice">🔊 Preview greeting</button></div>
+  </section>
   <section><h2>Today</h2>
     <p>Missions ${S.day.done.length}/${todaysMissions().length} · Mission Control ${S.day.coop ? '✓ done' : 'not yet'} · Days played ${Object.keys(S.log).length} · Best gold streak ${S.best.streak}</p>
-    <div class="btns"><button data-act="coop">🚀 Start Mission Control</button><button data-act="report">📤 Share progress report</button></div>
+    <div class="btns"><button data-act="coop">🚀 Start Mission Control</button><button data-act="report">📊 View progress report</button></div>
   </section>
   <section><h2>Heart Words, List ${S.cur + 1} ${list.passed ? `<span class="badge">🏅 Passed ${esc(list.passed)}</span>` : list.ready ? `<span class="badge">🏆 READY TO TEST: send the teacher a note (${esc(list.ready)})</span>` : ''}</h2>
     <div>${listKeys(list).map(chip).join('')}</div>
     <p class="hint"><span class="chip">new</span><span class="chip learning">learning</span><span class="chip known">known</span><span class="chip mastered">mastered 🤖</span> Mastered = right on 3 different days, including an instant read-aloud to you.</p>
     <div class="btns"><button data-act="pageWords">📄 Practice test (shuffled page)</button><button data-act="placeWords">🧭 Word placement check</button><button data-act="testWords">🔊 Hear each word</button></div>
   </section>
-  <section><h2>Letters</h2>
+  <section id="letterSettings"><h2>Letter focus</h2>
+    <p class="hint">Choose the letters to practice in letter jobs and Mission Control. Other letters can still appear as answer choices. Matching jobs show both cases to teach the pair. Full alphabet progress and placement stay below.</p>
+    <fieldset class="letter-focus"><legend>Letters to practice (choose at least one)</legend>${[...ALPHABET].map(c => `<label><input type="checkbox" name="focusLetter" value="${c}" ${parentPrefs.letters.includes(c) ? 'checked' : ''}> ${c} ${c.toLowerCase()}</label>`).join('')}</fieldset>
+    <div class="btns"><button data-act="allLetters">Select all</button><button data-act="clearLetters">Clear selection</button></div>
+    <label>Target letter case<select id="setCase"><option value="both" ${parentPrefs.case === 'both' ? 'selected' : ''}>Big and little letters</option><option value="upper" ${parentPrefs.case === 'upper' ? 'selected' : ''}>Big letters (A B C)</option><option value="lower" ${parentPrefs.case === 'lower' ? 'selected' : ''}>Little letters (a b c)</option></select></label>
+    <p class="hint">Save changes before practicing. Changing focus restarts unfinished letter jobs and keeps earned seeds. Word jobs stay saved.</p>
+    <div class="btns"><button data-act="saveSettings">Save settings</button><button data-act="pageFocus">📄 Focused letter page</button><button data-act="hearFocus">🔊 Hear focused letters</button></div>
+    <h3>All alphabet progress</h3>
     <div class="letters">${L.LETTER_KEYS.filter((_, i) => i % 2 === 0).map(chip).join('')}</div>
     <div class="letters">${L.LETTER_KEYS.filter((_, i) => i % 2 === 1).map(chip).join('')}</div>
     <div class="btns"><button data-act="pageLetters">📄 Letter page</button><button data-act="placeLetters">🧭 Letter placement check</button></div>
   </section>
-  <section><h2>Word lists</h2>
-    <p class="hint">Type the teacher's words separated by commas, then save. If the voice says a word wrong, add what it should sound like, e.g. <code>read=reed</code>. Never drill the list in order. The game shuffles it every time.</p>
+  <section id="wordSettings"><h2>Add words &amp; word lists</h2>
+    <p class="hint">Type the teacher's words separated by commas or new lines, then save. If the voice says a word wrong, add what it should sound like, e.g. <code>read=reed</code>. Never drill the list in order. The game shuffles it every time.</p>
     ${S.lists.map((l, i) => `<div class="list">
       <label><input type="radio" name="cur" value="${i}" ${i === S.cur ? 'checked' : ''}> List ${i + 1}${i === S.cur ? ' (current)' : ''}</label>
-      <textarea data-list="${i}" rows="2">${esc(l.words.map(w => l.say?.[w] ? `${w}=${l.say[w]}` : w).join(', '))}</textarea>
+      <textarea aria-label="Words for list ${i + 1}" data-list="${i}" rows="3">${esc(l.words.map(w => l.say?.[w] ? `${w}=${l.say[w]}` : w).join(', '))}</textarea>
       <div class="btns"><button data-act="saveList" data-i="${i}">Save list ${i + 1}</button>${!l.words.length ? '' : l.passed ? `<span class="badge">🏅 Passed ${esc(l.passed)}</span>` : `<button data-act="passed" data-i="${i}">🏅 Teacher says he passed</button>`}</div></div>`).join('')}
     <div class="btns"><button data-act="addList">➕ Add the next list</button></div>
   </section>
-  <section><h2>Settings</h2>
-    <label>Child's name (the robot says it)<input id="setChild" value="${esc(S.settings.child)}" autocomplete="off"></label>
-    <label>Voice<select id="setVoice"><option value="">Automatic</option>${vs.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === S.settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('')}</select></label>
+  <section id="playSettings"><h2>Play &amp; sound</h2>
+    <label><input id="setCalm" type="checkbox" ${parentPrefs.calm ? 'checked' : ''}> Calmer visuals (fewer moving effects)</label>
+    <label><input id="setEffects" type="checkbox" ${parentPrefs.effects ? 'checked' : ''}> Sound effects</label>
+    <p class="hint">Device fallback voice: ${esc(vs[0]?.name || 'Device default; installed voices have not appeared yet')} ${vs[0] ? '— ' + esc(voiceQuality(vs[0])) : ''}</p>
+    <label>Voice<select id="setVoice"><option value="">Helena recordings + device fallback</option><option value="__device__" ${S.settings.voice === '__device__' ? 'selected' : ''}>Device voice (automatic)</option>${vs.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === S.settings.voice ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)}) — ${esc(voiceQuality(v))}</option>`).join('')}</select></label>
+    <p class="hint">Only installed English voices reported by this browser appear here; online voices are excluded. For a more natural voice on iPhone or iPad, open Settings → Accessibility → Read &amp; Speak (Spoken Content on older versions) → Voices and download an English Premium or Enhanced voice. Return here and preview it. Siri voices may not be exposed to web pages.</p>
+    <p class="hint">Helena AI narrator: ${NARRATION_CLIPS.length} recorded lines installed. Remaining recordings are pending; names, custom words, and unrecorded lines use the selected device voice. Installed recordings play locally without credits.</p><button data-act="previewHelena">🔊 Hear Helena</button>
+    <details><summary>Preview English voices (${vs.length})</summary><div class="voice-list">${vs.map(v => `<div class="voice-row"><span>${esc(v.name)} (${esc(v.lang)})<small>${esc(voiceQuality(v))}</small></span><button data-act="previewVoice" data-voice="${esc(v.voiceURI)}" aria-label="Preview ${esc(v.name)}">▶ Preview</button></div>`).join('')}</div></details>
+    <label><input id="setMusic" type="checkbox" ${audioPrefs.music ? 'checked' : ''}> Gentle farm music</label>
+    <label>Music volume<input id="setMusicVol" type="range" min="0" max="0.5" step="0.01" value="${audioPrefs.volume}"></label>
+    <p class="hint">Music plays on the farm and celebration screens, and stops for spoken prompts. Music preferences are stored separately from learning progress.</p>
     <label>Talking speed<input id="setRate" type="range" min="0.6" max="1.1" step="0.05" value="${S.settings.rate}"></label>
     <label>Missions per day<select id="setPerDay">${[2, 3, 4, 5].map(n => `<option ${n === S.settings.perDay ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <label>Robot color<br>${COLORS.map(c => `<button class="swatch" data-act="color" data-c="${c}" style="background:${c}" aria-label="color"></button>`).join('')}</label>
     <div class="btns"><button data-act="saveSettings">Save settings</button><button data-act="testVoice">🔊 Test voice</button><button data-act="testLetters">🔤 Hear all letter names</button></div>
   </section>
-  <section><h2>Backup</h2>
-    <p class="hint">Progress lives only on this iPad. Save a backup every week or two (to Files or iCloud Drive).</p>
+  <section id="backupSettings"><h2>Backup</h2>
+    <p class="hint">Progress lives only on this device. Save a backup every week or two (to Files or iCloud Drive).</p>
     <div class="btns"><button data-act="backup">💾 Save backup</button><label class="file">📂 Restore backup<input type="file" id="restore" accept="application/json,.json" hidden></label><button data-act="reset" class="danger">Reset everything</button></div>
   </section>
   <section><h2>Mission Control tips</h2><ul>
@@ -861,7 +1190,7 @@ function renderParent(msg = '') {
     <li>End on a win. If he's getting upset, stop. Tomorrow is another day.</li>
     <li>Run both <b>placement checks</b> once at the start so the game knows what he already knows.</li>
     <li>When every word shows 🤖 and the practice test is clean, the game says <b>READY TO TEST</b>. Send the teacher the note. When she says he passed, tap "🏅 Teacher says he passed" under Word lists. He gets a medal on the farm, and you add the next list.</li>
-    <li><b>iPad setup:</b> Safari → Share → Add to Home Screen. Settings → Accessibility → Spoken Content → Voices → English → download an "Enhanced" voice, then pick it above. Settings → Accessibility → Guided Access locks him into the game (triple-click the top button to start).</li>
+    <li><b>iPhone / iPad setup:</b> Safari → Share → Add to Home Screen. Download a Premium or Enhanced English voice using the settings path above, then preview and select it here. Settings → Accessibility → Guided Access locks him into the game (triple-click the top button to start).</li>
   </ul></section>`;
 }
 
@@ -878,36 +1207,106 @@ function report() {
   lines.push(`Letters: ${lk.filter(k => L.isKnown(peek(k))).length} of 52 known, ${lk.filter(k => L.isMastered(peek(k))).length} mastered.`);
   const tricky = lk.filter(k => peek(k).miss + peek(k).again >= 2 && !L.isMastered(peek(k))).map(L.keyText);
   if (tricky.length) lines.push(`  Tricky letters: ${tricky.join(' ')}`);
-  const week = Object.entries(S.log).filter(([d]) => L.daysBetween(d, TODAY()) < 7);
+  const week = Object.entries(S.log).filter(([d]) => L.daysBetween(d, TODAY()) >= 0 && L.daysBetween(d, TODAY()) < 7);
   const n = (x, w) => `${x} ${w}${x === 1 ? '' : 's'}`;
   lines.push(`Last 7 days: ${n(week.length, 'day')} played, ${n(week.reduce((a, [, v]) => a + v.m, 0), 'mission')}, ${n(week.reduce((a, [, v]) => a + v.c, 0), 'Mission Control session')}.`);
+  const time = usage.snapshot();
+  lines.push(`Active app time: ${duration(time.totalMs)} total. Tracking ${time.since ? 'since ' + time.since : 'starts with this update'}; earlier time was not recorded.`);
+  for (const session of time.sessions.slice(-3).reverse()) lines.push(`  App visit ${new Date(session.start).toLocaleString()}: ${duration(session.ms)} active.`);
   return lines.join('\n');
 }
-async function shareReport() {
-  const text = report();
-  if (navigator.share) { try { return await navigator.share({ text }); } catch (e) { if (e.name === 'AbortError') return; } }
-  try { await navigator.clipboard.writeText(text); renderParent('Report copied. Paste it into a message or note.'); } catch { prompt('Copy this report:', text); }
+let currentReport = null, reportBlob = null, reportGeneration = 0;
+async function openReport() {
+  closeModal(); stopSpeech(); show('progressReport');
+  const generation = ++reportGeneration;
+  currentReport = reportData(S, TODAY(), parentPrefs, usage.snapshot()); reportBlob = null;
+  $('#reportShare').disabled = $('#reportSave').disabled = true;
+  $('#reportNotice').textContent = 'Preparing your shareable image…';
+  $('#reportBody').innerHTML = reportMarkup(currentReport);
+  $('#reportBody .report-mascot').append(art('botHappy'));
+  $('#progressReport').scrollTop = 0;
+  try {
+    await document.fonts.ready;
+    const blob = await reportImage(currentReport);
+    if (generation !== reportGeneration) return;
+    reportBlob = blob; $('#reportShare').disabled = $('#reportSave').disabled = false;
+    $('#reportNotice').textContent = usage.failed ? 'Time tracking could not be saved. Check device storage. You can still share or print this report.' : 'Share a picture of this report, save it, or choose Print / PDF.';
+  } catch {
+    if (generation === reportGeneration) $('#reportNotice').textContent = 'Image export is unavailable. You can still print this report or copy its summary.';
+  }
 }
+function saveReportImage() {
+  if (!reportBlob) return;
+  const link = el('a'); link.href = URL.createObjectURL(reportBlob); link.download = `robot-farm-progress-${currentReport.date}.png`; link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+  $('#reportNotice').textContent = 'Image ready. Check your browser’s downloads or Files.';
+}
+async function shareReportImage() {
+  if (!reportBlob) return;
+  const file = new File([reportBlob], `robot-farm-progress-${currentReport.date}.png`, {type:'image/png'});
+  if (navigator.canShare?.({files:[file]})) {
+    try { await navigator.share({files:[file],title:'Robot Farm progress report'}); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  saveReportImage();
+  $('#reportNotice').textContent = 'Image downloaded. Attach it to your message from Downloads or Files.';
+}
+$('#reportBack').onclick = () => { reportGeneration++; reportBlob = null; openParent(); };
+$('#reportShare').onclick = shareReportImage;
+$('#reportSave').onclick = saveReportImage;
+$('#reportPrint').onclick = () => window.print();
+$('#reportCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText(report()); $('#reportNotice').textContent = 'Summary copied. Paste it into a message or note.'; }
+  catch { prompt('Copy this report:', report()); }
+};
 async function saveBackup() {
-  const name = `robot-farm-backup-${TODAY()}.json`, blob = new Blob([JSON.stringify(S)], { type: 'application/json' });
+  const timeUsage = usage.snapshot();
+  const data = { ...S, ...(timeUsage.totalMs ? {timeUsage} : {}), ...(jobSessions.length ? { jobSessions } : {}), ...(JSON.stringify(parentPrefs) !== JSON.stringify(preferences(null)) ? { parentPreferences: parentPrefs } : {}) };
+  const name = `robot-farm-backup-${TODAY()}.json`, blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const file = new File([blob], name, { type: 'application/json' });
   if (navigator.canShare?.({ files: [file] })) { try { return await navigator.share({ files: [file] }); } catch (e) { if (e.name === 'AbortError') return; } }
   const a = el('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
+function validBackup(d) {
+  const obj = v => v && typeof v === 'object' && !Array.isArray(v);
+  const count = v => Number.isInteger(v) && v >= 0;
+  const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  return obj(d) && d.v === 1 && date(d.start) && obj(d.settings)
+    && typeof d.settings.child === 'string' && typeof d.settings.color === 'string'
+    && typeof d.settings.voice === 'string' && Number.isFinite(d.settings.rate)
+    && Number.isInteger(d.settings.perDay) && d.settings.perDay >= 2 && d.settings.perDay <= 5
+    && Array.isArray(d.lists) && d.lists.length > 0 && d.lists.every(l => obj(l) && Array.isArray(l.words) && l.words.every(w => typeof w === 'string') && obj(l.say))
+    && count(d.cur) && d.cur < d.lists.length && obj(d.items) && Object.values(d.items).every(it => obj(it) && Array.isArray(it.days) && it.days.every(date))
+    && obj(d.day) && date(d.day.date) && Array.isArray(d.day.done) && d.day.done.every(count) && count(d.day.coop)
+    && obj(d.log) && obj(d.best) && count(d.best.streak) && [d.coins,d.seeds,d.goldSeeds,d.streak].every(count)
+    && Array.isArray(d.newBots) && typeof d.hat === 'string' && (d.placing === null || !!THING[d.placing])
+    && Array.isArray(d.farm) && d.farm.length === 60 && d.farm.every(t => obj(t) && ['grass','soil','water'].includes(t.t)
+      && (!t.thing || !!THING[t.thing]) && (!t.crop || (obj(t.crop) && !!CROPS[t.crop.kind] && date(t.crop.planted))));
+}
 function restoreBackup(file) {
+  let verified = false;
   file?.text().then(t => {
     const d = JSON.parse(t);
-    if (d?.v !== 1 || !d.items || !d.farm) throw new Error('not a backup');
-    if (!confirm('Replace the progress on this iPad with this backup?')) return;
-    S = d; save(); location.reload();
-  }).catch(() => alert('That file is not a Robot Farm backup.'));
+    if (!validBackup(d) || (d.jobSessions !== undefined && !validJobs(d.jobSessions)) || (d.parentPreferences !== undefined && !validPreferences(d.parentPreferences)) || (d.timeUsage !== undefined && !validUsage(d.timeUsage))) throw new Error('not a backup');
+    verified = true;
+    if (!confirm('Replace the progress on this device with this backup?')) return;
+    usage.stop(); localStorage.setItem(TIME_KEY, JSON.stringify(d.timeUsage || emptyUsage())); delete d.timeUsage;
+    const restoredPrefs = preferences(d.parentPreferences);
+    localStorage.setItem(PREF_KEY, JSON.stringify(restoredPrefs));
+    parentPrefs = restoredPrefs; delete d.parentPreferences;
+    jobSessions = d.jobSessions || []; delete d.jobSessions; M = null; S = d; if (save() === false) throw new Error('Save failed'); location.reload();
+  }).catch(() => alert(verified ? 'The backup could not be saved on this device. Check device storage and try again.' : 'That file is not a Robot Farm backup.'));
 }
 
 const ACT = {
   coop: () => startCoop(),
-  report: shareReport,
+  report: openReport,
   pageWords: () => pageTest(listKeys(curList()), true),
+  allLetters: () => document.querySelectorAll('[name=focusLetter]').forEach(b => b.checked = true),
+  clearLetters: () => document.querySelectorAll('[name=focusLetter]').forEach(b => b.checked = false),
+  pageFocus: () => pageTest(focusKeys(), false),
+  hearFocus: async () => { for (const k of focusKeys()) { if (document.body.dataset.screen !== 'parent') return; await say(`${caseWord(k)} ${speak(k)}.`); } },
   pageLetters: () => pageTest(L.LETTER_KEYS, false),
   placeWords: () => startCoop(listKeys(curList()), () => openParent('Word placement done. The game now knows where to start.')),
   placeLetters: () => startCoop(L.LETTER_KEYS, () => openParent('Letter placement done. The game now knows where to start.')),
@@ -929,16 +1328,27 @@ const ACT = {
   addList: () => { S.lists.push({ words: [], say: {} }); save(); renderParent('Added a list. Type its words, save it, then mark it current.'); },
   color: b => { S.settings.color = b.dataset.c; save(); applyLook(); },
   saveSettings: () => {
+    const letters = [...document.querySelectorAll('[name=focusLetter]:checked')].map(b => b.value);
+    if (!letters.length) return alert('Choose at least one letter to practice.');
+    const nextPrefs = preferences({ letters, case: $('#setCase').value, calm: $('#setCalm').checked, effects: $('#setEffects').checked });
+    try { localStorage.setItem(PREF_KEY, JSON.stringify(nextPrefs)); } catch { return alert('Settings could not be saved. Check available device storage and try again.'); }
+    parentPrefs = nextPrefs; applyPreferences();
     S.settings.child = $('#setChild').value.trim().slice(0, 30);
     S.settings.voice = $('#setVoice').value;
     S.settings.rate = +$('#setRate').value;
     S.settings.perDay = +$('#setPerDay').value;
-    save(); pickVoice(); renderParent('Settings saved.');
+    audioPrefs.music = $('#setMusic').checked; audioPrefs.volume = +$('#setMusicVol').value;
+    let audioSaved = true;
+    try { localStorage.setItem(AUDIO_KEY, JSON.stringify(audioPrefs)); } catch { audioSaved = false; }
+    sound?.update(); const progressSaved = save(); pickVoice();
+    renderParent(audioSaved && progressSaved ? 'Settings saved.' : 'Some settings could not be saved. Check device storage and try again.');
   },
-  testVoice: () => say(`Hi ${S.settings.child || 'friend'}! This is how I sound. Find the word: like.`),
+  previewHelena: () => say("You got it! Let’s boost our tractor! Tap the big button.", '__helena__', +$('#setRate').value),
+  testVoice: () => say(`Hi, ${$('#setChild').value.trim().slice(0,30) || 'friend'}! Ready to read? Find the word: like.`, $('#setVoice').value, +$('#setRate').value),
+  previewVoice: b => say(`Hi, ${$('#setChild').value.trim().slice(0,30) || 'friend'}! Ready to read? Find the word: like.`, b.dataset.voice, +$('#setRate').value),
   testLetters: () => say(L.ABC.map(L.letterName).join(', ')),
   backup: saveBackup,
-  reset: () => { if (confirm('Erase ALL progress on this iPad?') && confirm('Really erase everything? This cannot be undone.')) { localStorage.removeItem(KEY); location.reload(); } },
+  reset: () => { if (confirm('Erase ALL progress on this device?') && confirm('Really erase everything? This cannot be undone.')) { usage.stop(); localStorage.removeItem(TIME_KEY); localStorage.removeItem(KEY); localStorage.removeItem(PREF_KEY); localStorage.removeItem(AUDIO_KEY); localStorage.removeItem('robotfarm.jobs.v1'); location.reload(); } },
 };
 $('#parentBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) ACT[b.dataset.act](b); };
 $('#parentBody').onchange = e => {
@@ -951,10 +1361,56 @@ $('#parentBody').onchange = e => {
 
 // ---------- boot ----------
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return synth?.cancel();
+  sound?.visibility(document.hidden);
+  if (document.hidden) { if (M) save(); return stopSpeech(); }
+  ac?.resume().catch(() => {});
   rollDay();
   if (document.body.dataset.screen === 'farm') renderFarm();
+  if (document.body.dataset.screen === 'yard') renderYard();
 });
+function countTo(node, value) {
+  if (node.dataset.target === String(value)) return;
+  cancelAnimationFrame(node.counterFrame); node.dataset.target = value;
+  const from = +node.textContent || 0;
+  if (FAST || reducedMotion()) { node.textContent = value; return; }
+  const start = performance.now();
+  const tick = now => {
+    const p = Math.min(1, (now - start) / 300); node.textContent = Math.round(from + (value - from) * p);
+    if (p < 1) node.counterFrame = requestAnimationFrame(tick);
+  };
+  node.counterFrame = requestAnimationFrame(tick);
+}
+function rocketSmoke() {
+  document.querySelectorAll('.smoke').forEach(p => p.remove());
+  if (reducedMotion()) return;
+  const r = $('#ship').getBoundingClientRect();
+  for (let i = 0; i < 6; i++) {
+    const p = el('i', 'smoke'); p.style.left = r.left + r.width / 2 - 12 + (i % 3 - 1) * 18 + 'px'; p.style.top = r.bottom + i * 12 + 'px';
+    document.body.append(p); setTimeout(() => p.remove(), 1500);
+  }
+}
+function curious() { const b = $('#bot'); b.classList.remove('thinking'); void b.offsetWidth; b.classList.add('thinking'); }
+function confetti() {
+  document.querySelectorAll('.confetti').forEach(p => p.remove());
+  if (reducedMotion()) return;
+  for (let i = 0; i < 16; i++) {
+    const p = el('i', 'confetti'); p.style.left = 20 + Math.random() * 60 + '%'; p.style.top = 20 + Math.random() * 35 + '%';
+    p.style.background = ['#e9c468', '#8cbdb9', '#9eba7a'][i % 3]; document.body.append(p); setTimeout(() => p.remove(), 1400);
+  }
+}
+$('#bot').replaceChildren(el('span', 'hat'), robotArt());
+for (const [id, name] of Object.entries({ play: 'play', rocket: 'rocket', shopBtn: 'shop', quit: 'home', replay: 'sound', coopQuit: 'home', gear: 'gear', ship: 'rocket' })) putArt($('#' + id), name);
+putArt($('#glitch span'), 'glitch'); putArt($('.rotate'), 'rotate');
+for (const [id, name] of Object.entries({ coins: 'coin', seeds: 'seed', gseeds: 'goldseed', medalN: 'medal' })) {
+  const span = $('#' + id).parentElement; span.firstChild.remove(); span.prepend(art(name));
+}
+putArt($('#trophy'), 'star');
+driver = createDriving($('#drive'), { speak: say, effect: name => sfx[name](), onExit: goFarm });
+const driveButton = button('pod', '🚜', openRoads);
+driveButton.id = 'driveBtn'; driveButton.replaceChildren(art('tractor'), art('trailer')); driveButton.setAttribute('aria-label', 'Drive a tractor and trailer');
+$('#farm .board').append(driveButton);
+const yardButton = button('pod', '', goFarm); yardButton.id = 'yardBtn'; yardButton.append(jobIcon(0)); yardButton.setAttribute('aria-label', 'Equipment jobs'); $('#farm .board').append(yardButton);
+for (const [id, name] of Object.entries({ yardFarm: 'home', yardDrive: 'tractor', yardCoop: 'rocket' })) putArt($('#' + id), name);
 applyLook(); save();
 if ('serviceWorker' in navigator && !/^(localhost|127\.|\[::1\])/.test(location.hostname)) navigator.serviceWorker.register('sw.js');
 </script>

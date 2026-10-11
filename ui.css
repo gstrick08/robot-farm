@@ -1,0 +1,413 @@
+:root {
+  --sky: #c4e9e5; --sky2: #e4efdc; --grass: #8db975; --soil: #9c7254; --wood: #76553e;
+  --gold: #f5c760; --ink: #294844; --card: #fffbee; --edge: #486757; --shadow: #36564c;
+  --water: #80bfcb; --bot: #559cbc; --bot-light: #85bed0; --bot-dark: #377286;
+}
+body { background: var(--sky); }
+.art { width: 64px; height: 64px; display: block; flex-shrink: 0; pointer-events: none; }
+.screen.on { animation: enter .18s ease-out; }
+@keyframes enter { from { opacity: .5; transform: translateY(8px); } }
+.round, .pod, .choice, .play, .shop-item { display: grid; place-items: center; border: 3px solid var(--edge); background: var(--card); box-shadow: 0 6px 0 var(--shadow); }
+button:active { transform: translateY(3px); }
+button:focus-visible { outline: 5px solid var(--gold); outline-offset: 4px; }
+.round .art { width: 48px; height: 48px; }
+.logo { color: var(--ink); text-shadow: 0 4px 0 #dcebc0; letter-spacing: -4px; font-size: clamp(64px,10vw,104px); }
+#start { background: radial-gradient(ellipse at 50% 85%, #9bbf85 0 22%, transparent 22%), var(--sky); }
+.play { background: #9abd73; color: var(--ink); }
+.play .art { width: 90px; height: 90px; }
+.swatch { border: 3px solid var(--edge); }
+.bot { width: 112px; left: 22px; bottom: 8px; animation: bob 3.8s ease-in-out infinite; }
+.bot > .hero { width: 112px; height: 130px; }
+.bot .hat { top: -10px; left: 27px; width: 64px; height: 48px; z-index: 1; }
+.bot .hat .art { width: 64px; height: 48px; }
+.bot.talk .eye { animation: speak-eyes .7s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+.bot.thinking { animation: curious .5s ease; }
+.bot.happy { animation: hop .45s ease 2; }
+body[data-screen="mission"] .bot, body[data-screen="coop"] .bot { animation: none; }
+body[data-screen="mission"] .bot.happy, body[data-screen="coop"] .bot.happy { animation: hop .45s ease 2; }
+body[data-screen="mission"] .bot.thinking { animation: curious .5s ease; }
+@keyframes speak-eyes { to { transform: scaleY(.65); opacity: .8; } }
+@keyframes curious { 45% { transform: rotate(-9deg); } }
+#farm { padding: calc(108px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(80px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left)); gap: 20px; background: linear-gradient(180deg,var(--sky) 0 25%,#b0cfa0 25% 45%,#9bbf85 45%); }
+#farm::before { content: ''; position: absolute; top: 102px; left: 7%; width: 110px; height: 28px; background: #f2f8ec; border-radius: 40px; pointer-events: none; animation: cloud-drift 22s ease-in-out infinite alternate; }
+@keyframes cloud-drift { to { transform: translateX(55px); } }
+.hud { gap: 12px; padding: 0; background: none; top: calc(22px + env(safe-area-inset-top)); font-size: 26px; }
+.hud > span { display: flex; align-items: center; gap: 9px; min-height: 58px; padding: 8px 14px; border: 3px solid var(--edge); border-radius: 22px; background: var(--card); box-shadow: 0 5px 0 var(--shadow); }
+.hud .art { width: 36px; height: 36px; }
+.hud [hidden] { display: none; }
+#grid { width: min(calc(100vw - 230px - env(safe-area-inset-left) - env(safe-area-inset-right)), calc((100vh - 205px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 10 / 6)); flex-shrink: 0; margin: 0; border: 6px solid #527952; border-radius: 18px; padding: 0; background: #c8dca3; box-shadow: 0 12px 0 #719455, 0 19px 0 #527952; overflow: visible; }
+.tile { font-size: inherit; border: 2px solid #c8dca3; border-radius: 9px; background-image: none !important; }
+.tile.grass { background: var(--grass); }
+.tile.grass:nth-child(3n) { background: #80ad69; }
+.tile.soil { background: var(--soil); box-shadow: inset 0 -6px #7f5c43; }
+.tile.soil::before { content: ''; position: absolute; inset: 14px 10px; background: repeating-linear-gradient(0deg, transparent 0 12px,#b48a66 12px 15px); pointer-events: none; }
+.tile.water { background: var(--water); }
+.tile > .art { position: relative; width: 75%; height: 85%; }
+.tile.seed > .art { width: 34%; height: 42%; }
+.tile.sprout > .art { width: 50%; height: 65%; }
+.tile.ready { animation: none; }
+.tile.ready::after { content: ''; position: absolute; right: 10px; top: 9px; width: 9px; height: 9px; background: #fff7cd; transform: rotate(45deg); pointer-events: none; }
+.tile.golden { filter: none; outline: 3px solid var(--gold); outline-offset: -5px; }
+.tile small { bottom: 0; max-width: 95%; font-size: clamp(12px,1.5vw,18px); color: var(--ink); background: var(--card); font-weight: 400; z-index: 2; }
+.tile .mini { width: 54%; height: 70%; margin-top: -7px; }
+.board { width: 164px; flex-shrink: 0; gap: 16px; margin: 0; padding: 14px 8px; background: #e3e5c5; border: 3px solid #6c8b60; border-radius: 26px; display: grid; grid-template-columns: repeat(2,72px); justify-content: center; box-shadow: 0 7px 0 #71966a; }
+.board > .pods { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2,72px); gap: 12px; }
+.pod { width: 72px; height: 72px; border-radius: 20px; background: var(--card); }
+.pod .art { width: 48px; height: 48px; }
+.pod.shopbtn { background: #f5dfb6; }
+.pod.done { background: #e8e3b8; }
+.pod.glow { animation: none; border-color: #698b5b; }
+#rocket { background: #dfefed; }
+#placing { font-size: 30px; animation: none; display: flex; align-items: center; gap: 12px; bottom: 12px; border: 3px solid var(--edge); }
+#placing .art { width: 40px; height: 40px; }
+#mission { background: #e6edda; }
+#mission[data-type="pods"] { background: #dceae8; }
+#mission[data-type="letters"] { background: #dedfcf; }
+#mission[data-type="twins"] { background: #e3e8d4; }
+#mission[data-type="boss"] { background: #e2e0ea; }
+.mtop { padding: 22px 26px 14px; background: var(--sky); }
+.bag { padding: 10px 14px; background: var(--card); border: 3px solid var(--edge); box-shadow: 0 5px 0 var(--shadow); gap: 8px; }
+.bag i { width: 34px; height: 34px; background: #d8dec6; }
+.bag i.on { background: #d7e6b3; }
+.bag i.on::after { content: none; }
+.bag .art { width: 30px; height: 30px; }
+.bag.full { outline: 4px solid var(--gold); outline-offset: 4px; }
+.prompt.teach, .prompt.twin { background: var(--card); border: 3px solid var(--edge); box-shadow: 0 6px 0 var(--shadow); margin-top: 12px; }
+.prompt.teach { font-size: clamp(90px,13vw,150px); }
+.prompt.twin { font-size: 100px; }
+.opts, .opts.pods { flex-direction: row; max-width: 950px; align-content: center; gap: 24px; padding: 14px 24px 120px; }
+.opt, .opts.pods .opt, .opts.blocks .opt { border: 3px solid var(--edge); border-radius: 24px; background: var(--card); box-shadow: 0 6px 0 var(--shadow); min-height: 136px; min-width: 210px; font-size: 76px; }
+.opts.grid { max-width: 890px; }
+.opts.grid .opt { min-width: 230px; font-size: 62px; }
+.opts.blocks .opt { min-width: 155px; min-height: 150px; font-size: 96px; }
+.opts.pods .opt { border-radius: 45px; }
+.opt.right { background: #dcebc0; transform: scale(1.04); }
+.opt.hint { outline: 6px solid var(--gold); outline-offset: 3px; }
+.glitch { top: 118px; right: 26px; width: 110px; height: 100px; }
+.glitch .art { width: 110px; height: 100px; }
+.glitch span { text-shadow: none; animation: none; }
+.glitch span.wob { animation: wob .5s; }
+.gear { width: 72px; height: 72px; top: calc(18px + env(safe-area-inset-top)); right: calc(18px + env(safe-area-inset-right)); display: grid; place-items: center; border: 3px solid var(--edge); border-radius: 22px; background: var(--card); }
+.gear .art { width: 45px; height: 45px; }
+.gear.holding { animation: gear-turn 3s linear; }
+@keyframes gear-turn { to { transform: rotate(360deg); } }
+.mbox { border: 3px solid var(--edge); box-shadow: 0 9px 0 var(--shadow); }
+.choice .art { width: 75px; height: 75px; }
+.choice.golden { filter: none; background: #fff0c0; }
+.shop-item { display: flex; }
+.shop-item .e .art { width: 62px; height: 62px; }
+.shop-item .p { display: flex; align-items: center; gap: 4px; }
+.shop-item .p .art { width: 24px; height: 24px; }
+.sum { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 14px; }
+.sum.teaching { font-family: Andika, Verdana, sans-serif; }
+.sum .art { width: 72px; height: 72px; }
+.reward-count { font-size: 48px; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 18px; }
+.reward-count .art { width: 64px; height: 64px; }
+.reward-hero { display: block; width: 150px; height: 164px; margin: auto; }
+.reward-hero .art { width: 100%; height: 100%; }
+.confetti { position: fixed; width: 9px; height: 16px; border-radius: 3px; pointer-events: none; z-index: 25; animation: confetti-fall 1.3s ease-out forwards; }
+@keyframes confetti-fall { from { opacity: 1; transform: translateY(-35px) rotate(-15deg); } to { opacity: 0; transform: translateY(160px) rotate(140deg); } }
+.fly { width: 42px; height: 42px; }
+.fly .art { width: 42px; height: 42px; }
+.floaty { color: var(--ink); background: var(--card); border-radius: 12px; padding: 4px 10px; text-shadow: none; display: flex; align-items: center; gap: 7px; }
+.floaty .art { width: 28px; height: 28px; }
+#coop { background: #e6edda; }
+.ctitle { color: var(--ink); text-shadow: none; }
+.bigcard { background: var(--card); border: 3px solid var(--edge); box-shadow: 0 7px 0 var(--shadow); }
+.bigcard .art { width: 170px; height: 170px; margin: auto; }
+.fuel { border-color: var(--edge); background: #dce2ce; }
+.fuel > div { height: 100%; background: var(--gold); transform: scaleY(0); transform-origin: bottom; transition: transform .35s; }
+.ship .art { width: 84px; height: 84px; }
+.pstrip { background: #e0e5e0; color: var(--ink); border-top: 1px solid #aab8ac; }
+.pstrip button { border: 1px solid #aab8ac; background: #f5f7f1; }
+.bar3 { background: #bac9b9; }
+.bar3 i { width: 100%; transform: scaleX(0); transform-origin: left; }
+.bar3.go i { transform: scaleX(1); transition: transform 3s linear; }
+#parent { background: #f2f4ed; }
+.pwrap section { border: 1px solid #d4dccf; border-radius: 20px; box-shadow: none; }
+.pwrap button, .pbtn, .phead button, .pwrap .file { background: #365d55; }
+.pwrap .danger { background: #fff; color: #76553e; border-color: #bba88a; }
+.rotate { color: var(--ink); }
+.rotate .art { width: 160px; height: 160px; }
+@media (max-height: 760px) { .opts { gap: 18px; padding-bottom: 105px; } .opt, .opts.grid .opt { min-height: 114px; } .prompt.twin { font-size: 82px; } .bigcard { margin-top: 24px; font-size: 160px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } .opt.hint { outline: 6px solid var(--gold); } }
+@font-face { font-family: Fredoka; src: url(fonts/Fredoka-Latin.woff2) format('woff2'); font-weight: 300 700; font-display: swap; }
+.logo, .hud, .ctitle, .reward-count, .floaty, .shop-item .p { font-family: Fredoka, 'Avenir Next', sans-serif; }
+.voice-list { display: grid; gap: 8px; margin-top: 12px; }
+.voice-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #e0e6da; padding-top: 8px; }
+.voice-row small { display: block; color: #587166; }
+.tile.animal .art { animation: animal-stroll 6s ease-in-out infinite alternate; }
+@keyframes animal-stroll { to { transform: translateX(8px) rotate(2deg); } }
+.smoke { width: 28px; height: 28px; position: fixed; border-radius: 50%; background: #fffbee; pointer-events: none; z-index: 8; animation: smoke-rise 1.4s ease-out forwards; }
+@keyframes smoke-rise { to { transform: translateY(70px) scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tile.animal .art, .smoke { animation: none; } }
+.opts.grid .opt { flex: 0 1 calc(50% - 12px); max-width: 360px; }
+
+.mtop { padding-left: calc(26px + env(safe-area-inset-left)); padding-right: calc(26px + env(safe-area-inset-right)); }
+.bot { left: calc(22px + env(safe-area-inset-left)); bottom: calc(8px + env(safe-area-inset-bottom)); }
+
+/* Tractor trails: driving progress is a short, unsaved play session. */
+#drive { background: var(--sky); }
+body[data-screen="drive"] .bot { display: none; }
+.drive-top { position: absolute; top: calc(18px + env(safe-area-inset-top)); left: calc(22px + env(safe-area-inset-left)); right: calc(22px + env(safe-area-inset-right)); z-index: 2; display: flex; align-items: center; gap: 18px; }
+.drive-top h1 { font: 38px Fredoka, sans-serif; margin: 0; }
+.drive-top .drive-score { margin-left: auto; }
+.drive-score { display: flex; align-items: center; gap: 12px; background: var(--card); border: 3px solid var(--edge); border-radius: 24px; padding: 8px 16px; font: 30px Fredoka, sans-serif; }
+.drive-score .art { width: 48px; height: 48px; }
+.drive-world { position: absolute; inset: 0; }
+.drive-world > svg { display: block; width: 100%; height: 100%; }
+.drive-controls { position: absolute; right: calc(22px + env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: 88px 88px; gap: 14px; z-index: 2; }
+.drive-controls button { width: 88px; height: 88px; border: 3px solid var(--edge); border-radius: 24px; background: var(--card); box-shadow: 0 6px var(--shadow); display: grid; place-items: center; touch-action: none; }
+.drive-controls button svg { width: 52px; height: 52px; }
+.drive-controls [data-drive="forward"], .drive-controls [data-drive="reverse"] { grid-column: 1 / 3; justify-self: center; }
+.drive-controls [data-drive="forward"] { background: #a4c687; }
+.drive-controls button.pressed { transform: translateY(4px); background: #d5e3bb; box-shadow: 0 2px var(--shadow); }
+.drive-controls[hidden], .drive-menu[hidden] { display: none; }
+.drive-menu { position: absolute; inset: 112px 24px 24px; z-index: 3; background: var(--sky); border: 3px solid var(--edge); border-radius: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+.drive-menu h2 { font: 42px Fredoka, sans-serif; margin: 0; }
+.drive-road-cards { display: flex; gap: 24px; justify-content: center; }
+.drive-road-card { position: relative; width: 240px; height: 230px; border: 3px solid var(--edge); border-radius: 30px; box-shadow: 0 8px var(--shadow); background: var(--card); }
+.drive-road-card svg { display: block; width: 100%; height: 180px; }
+.drive-road-card span { font: 30px Fredoka, sans-serif; }
+.drive-finish-art { width: 160px; height: 160px; }
+.drive-finish-buttons { display: flex; gap: 28px; }
+#driveBtn { display: flex; justify-content: center; align-items: center; gap: 5px; grid-column: 1 / -1; width: 156px; background: #a4c687; }
+#driveBtn .art { width: 60px; height: 58px; }
+@media (max-height: 760px) { .drive-controls { grid-template-columns: 78px 78px; gap: 12px; } .drive-controls button { width: 78px; height: 78px; } }
+
+.drive-score[hidden] { display: none; }
+
+/* Guided equipment jobs present the same daily reading missions. */
+#yard { flex-direction: column; background: #e7eedb; padding: calc(18px + env(safe-area-inset-top)) calc(26px + env(safe-area-inset-right)) calc(90px + env(safe-area-inset-bottom)) calc(26px + env(safe-area-inset-left)); }
+body[data-screen="yard"] #gear { display: grid; }
+.yard-top { display: flex; align-items: center; justify-content: space-between; padding-right: 92px; min-height: 72px; gap: 20px; }
+.yard-top h1 { font: 38px Fredoka, sans-serif; margin: 0; }
+.yard-counts { display: flex; gap: 12px; font: 26px Fredoka, sans-serif; }
+.yard-counts span { display: flex; align-items: center; gap: 8px; background: var(--card); padding: 8px 14px; border: 2px solid #a7bb90; border-radius: 20px; }
+.yard-counts .art { width: 35px; height: 35px; }
+.yard-layout { display: grid; grid-template-columns: 236px minmax(0,1fr); gap: 24px; flex: 1; min-height: 0; padding-top: 20px; }
+.yard-layout h2 { font: 23px Fredoka, sans-serif; margin: 0 0 16px; }
+#yardJobs { display: grid; gap: 12px; }
+.yard-job { display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 82px; width: 100%; border: 3px solid #a8bd98; background: var(--card); border-radius: 22px; box-shadow: 0 5px 0 #c7d4b6; text-align: left; font: 20px Fredoka, sans-serif; }
+.yard-job .art { width: 48px; height: 48px; }
+.yard-job.done { background: #e2e8ca; }
+.yard-job.done > .art:last-child { width: 25px; height: 25px; margin-left: auto; }
+.yard-job.selected { background: #f3e5b5; border-color: #baa56b; }
+.yard-adventure { display: flex; flex-direction: column; justify-content: center; min-height: 0; }
+.yard-adventure h2 { font-size: 32px; }
+.equipment-scene { border: 3px solid #a0bb90; background: var(--card); border-radius: 28px; padding: 12px; box-shadow: 0 6px 0 #c7d4b6; overflow: hidden; }
+.equipment-scene > svg { display: block; width: 100%; height: auto; max-height: 340px; border-radius: 18px; }
+.yard-start { width: 100%; display: flex; align-items: center; justify-content: center; gap: 15px; min-height: 82px; margin-top: 20px; background: #e8d89b; border: 3px solid #bda66c; border-radius: 24px; box-shadow: 0 5px 0 #c6b780; font: 27px Fredoka, sans-serif; }
+.yard-start .art { width: 52px; height: 52px; }
+.yard-nav { position: absolute; bottom: calc(15px + env(safe-area-inset-bottom)); left: calc(180px + env(safe-area-inset-left)); right: calc(26px + env(safe-area-inset-right)); display: flex; justify-content: flex-end; gap: 15px; }
+.yard-nav .round { border-radius: 20px; }
+body[data-screen="yard"] .bot { animation: none; }
+.mission-equipment { position: relative; width: calc(100% - 64px); max-width: 1050px; flex-shrink: 0; }
+.mission-equipment h2 { position: absolute; z-index: 1; top: 14px; left: 22px; margin: 0; padding: 8px 16px; border-radius: 15px; background: var(--card); border: 2px solid #b4c7a4; font: 21px Fredoka, sans-serif; }
+#jobScene { padding: 6px; border-radius: 25px; }
+#jobScene > svg { height: clamp(160px,27vh,220px); max-height: none; }
+.equipment-travel { transition: transform .35s ease-out; }
+.equipment-bit, .assembly-base, .equipment-growth { transition: opacity .35s ease-out; }
+#mission .opts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-content: center; gap: 16px; width: calc(100% - 260px); max-width: 1000px; padding: 12px 0 65px; }
+#mission .opts[data-count="2"], #mission .opts[data-count="4"] { grid-template-columns: repeat(2,minmax(0,1fr)); }
+#mission .opt, #mission .opts.grid .opt, #mission .opts.pods .opt, #mission .opts.blocks .opt { min-width: 0; min-height: 98px; max-width: none; padding: 4px 12px 10px; font-size: clamp(46px,5.4vw,64px); border-radius: 22px; }
+#mission .opts.blocks .opt { font-size: 76px; }
+#mission .prompt.teach { font-size: clamp(82px,11vw,130px); margin: 12px 0 0; }
+#mission .prompt.twin { font-size: 80px; margin: 12px 0 0; padding: 4px 45px 8px; }
+#mission .glitch { top: 134px; right: 48px; width: 90px; height: 82px; z-index: 2; }
+#mission .glitch .art { width: 90px; height: 82px; }
+.equipment-reward { width: 100%; margin: 10px auto; }
+.equipment-reward svg { width: 100%; max-height: 180px; display: block; border-radius: 20px; }
+.job-complete-title { font: 28px Fredoka, sans-serif; margin: 0; }
+@media(max-height:760px) { .yard-layout { padding-top: 12px; } .yard-job { min-height: 76px; } #yardJobs { gap: 10px; } .yard-adventure h2 { font-size: 27px; } #jobScene > svg { height: 160px; } #mission .opts { padding-bottom: 55px; } }
+@media(prefers-reduced-motion:reduce) { .equipment-travel, .equipment-bit, .assembly-base, .equipment-growth { transition: none; } }
+
+.farm-viewport { flex-shrink: 0; }
+@supports(height:100dvh) { .screen { height: 100dvh; bottom: auto; } }
+/* Phones and portrait tablets keep large controls; the farm pans instead of shrinking its tiles. */
+@media(max-width:900px), (max-height:500px) {
+  .logo { font-size: clamp(54px,11vw,82px); }
+  #start { gap: 22px; }
+  .play { width: 130px; height: 130px; }
+  .colors { flex-wrap: wrap; justify-content: center; gap: 14px; max-width: 360px; }
+  .swatch { width: 90px; height: 90px; }
+  #yard { overflow-y: auto; padding: calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); }
+  .yard-top { display: block; min-height: 90px; padding-right: 78px; }
+  .yard-top h1 { font-size: 25px; }
+  .yard-counts { margin-top: 9px; font-size: 20px; gap: 8px; }
+  .yard-counts span { padding: 4px 9px; }
+  .yard-counts .art { width: 24px; height: 24px; }
+  .yard-layout { display: flex; flex-direction: column; gap: 16px; padding-top: 10px; flex: none; }
+  .yard-layout h2 { font-size: 19px; margin-bottom: 8px; }
+  #yardJobs { display: flex; overflow-x: auto; gap: 10px; padding: 2px 2px 7px; }
+  .yard-job { flex: 0 0 122px; min-height: 80px; font-size: 15px; gap: 6px; padding: 8px; }
+  .yard-job .art { width: 36px; height: 36px; }
+  .yard-job.done > .art:last-child { width: 18px; height: 18px; }
+  .yard-adventure { flex-shrink: 0; }
+  .yard-adventure h2 { font-size: 23px; }
+  .equipment-scene { padding: 6px; border-radius: 22px; }
+  .equipment-scene > svg { max-height: 170px; }
+  .yard-start { min-height: 72px; margin-top: 12px; font-size: 22px; }
+  .yard-nav { position: fixed; left: auto; right: calc(16px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); gap: 12px; }
+  body[data-screen="yard"] .bot { width: 72px; }
+  body[data-screen="yard"] .bot > .hero { width: 72px; height: 84px; }
+  .mtop { padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left)); gap: 8px; min-height: 88px; flex-shrink: 0; }
+  .mtop > .round { flex-shrink: 0; }
+  .bag { min-width: 0; flex-shrink: 1; gap: 3px; padding: 9px 6px; box-shadow: 0 3px 0 var(--shadow); }
+  .bag i { flex: 1 1 12px; min-width: 0; width: 12px; height: 20px; }
+  .bag .art { width: 12px; height: 17px; }
+  .mission-equipment { width: calc(100% - 24px); }
+  .mission-equipment h2 { font-size: 16px; top: 9px; left: 12px; padding: 5px 10px; }
+  #jobScene > svg { height: 108px; }
+  #mission .opts { width: calc(100% - 32px); grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; padding: 10px 0 68px; }
+  #mission .opts[data-count="3"] { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #mission .opt, #mission .opts.grid .opt, #mission .opts.pods .opt, #mission .opts.blocks .opt { min-height: 72px; padding: 6px; font-size: clamp(28px,8vw,48px); }
+  #mission .opts.blocks .opt { font-size: 54px; }
+  #mission .prompt.teach { font-size: clamp(55px,14vw,100px); padding: 8px 14px; max-width: calc(100% - 24px); }
+  #mission .prompt.twin { font-size: 56px; margin-top: 8px; padding: 2px 28px 6px; }
+  #mission .glitch { top: 105px; right: 20px; width: 52px; height: 48px; }
+  #mission .glitch .art { width: 52px; height: 48px; }
+  body[data-screen="mission"] .bot { width: 56px; bottom: calc(2px + env(safe-area-inset-bottom)); left: 12px; }
+  body[data-screen="mission"] .bot > .hero { width: 56px; height: 65px; }
+  body[data-screen="mission"] .bot .hat { left: 10px; width: 38px; height: 30px; top: -5px; }
+  body[data-screen="mission"] .bot .hat .art { width: 38px; height: 30px; }
+  #farm { padding: calc(90px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(116px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); flex-direction: column; gap: 0; }
+  .farm-viewport { width: 100%; flex: 1; min-height: 0; overflow: auto; padding: 4px 4px 24px; touch-action: pan-x pan-y; }
+  #grid { width: 812px; min-width: 812px; margin: 0; }
+  .hud { left: calc(12px + env(safe-area-inset-left)); right: calc(94px + env(safe-area-inset-right)); transform: none; top: calc(12px + env(safe-area-inset-top)); gap: 6px; flex-wrap: wrap; font-size: 16px; }
+  .hud > span { min-height: 36px; padding: 3px 7px; border-width: 2px; border-radius: 14px; gap: 4px; }
+  .hud .art { width: 23px; height: 23px; }
+  .board { position: absolute; left: calc(12px + env(safe-area-inset-left)); right: calc(12px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); width: auto; display: flex; flex-direction: row; justify-content: flex-start; overflow-x: auto; gap: 12px; padding: 8px; border-radius: 22px; }
+  .board > .pods { display: contents; }
+  .board .pod { flex-shrink: 0; }
+  #driveBtn { width: 110px; }
+  #driveBtn .art { width: 43px; height: 46px; }
+  body[data-screen="farm"] .bot { display: none; }
+  .mbox { padding: 18px 14px; max-height: calc(100dvh - 24px); max-width: calc(100vw - 24px); }
+  .row { gap: 8px; flex-wrap: wrap; }
+  .choice { width: 72px; height: 72px; font-size: 40px; }
+  .choice .art { width: 53px; height: 53px; }
+  .shop { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+  .shop-item { min-width: 82px; height: 96px; }
+  .shop-item .e .art { width: 45px; height: 45px; }
+  .reward-count { font-size: 30px; gap: 8px; padding: 10px; }
+  .reward-count .art { width: 42px; height: 42px; }
+  .equipment-reward svg { max-height: 130px; }
+  .job-complete-title { font-size: 23px; }
+  .play.small { width: 72px; height: 72px; border-radius: 22px; margin-top: 12px; }
+  .play.small .art { width: 52px; height: 52px; }
+  .bigcard { min-width: 0; max-width: calc(100% - 32px); margin-top: 22px; padding: 16px; font-size: clamp(56px,15vw,110px); overflow-wrap: anywhere; }
+  .ctitle { font-size: 20px; }
+  .fuel { right: 22px; top: auto; bottom: 144px; width: 28px; height: 150px; }
+  .ship { right: 8px; top: auto; bottom: 304px; }
+  .ship .art { width: 54px; height: 54px; }
+  .pstrip { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  .answer { grid-column: 1 / -1; padding: 0; font-size: 14px; }
+  .bar3 { grid-column: 1 / -1; width: 100%; }
+  .pstrip button { padding: 0 6px; font-size: 14px; min-height: 48px; }
+  body[data-screen="coop"] .bot { width: 72px; bottom: 124px; }
+  body[data-screen="coop"] .bot > .hero { width: 72px; height: 84px; }
+  .phead { padding: 8px; gap: 6px; font-size: 13px; }
+  .phead button { padding: 10px; min-height: 44px; }
+  .page, .page.letters { grid-template-columns: repeat(3,minmax(0,1fr)); padding: 16px; gap: 10px; font-size: 28px; }
+  .page.letters { grid-template-columns: repeat(5,minmax(0,1fr)); font-size: 32px; }
+  .pw { min-height: 48px; }
+  .pwrap { padding: 0 12px 60px; }
+  .pwrap section { padding: 12px; }
+  .voice-row { flex-wrap: wrap; }
+  .drive-top { top: calc(10px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); right: calc(12px + env(safe-area-inset-right)); gap: 10px; }
+  .drive-top > .round { flex-shrink: 0; }
+  .drive-top h1 { min-width: 0; font-size: clamp(20px,6vw,24px); }
+  .drive-top .drive-score { position: absolute; right: 0; top: 84px; font-size: 20px; padding: 4px 8px; }
+  .drive-score .art { width: 27px; height: 27px; }
+  .drive-controls { right: 50%; transform: translateX(50%); bottom: calc(12px + env(safe-area-inset-bottom)); grid-template-columns: 72px 72px; gap: 10px; }
+  .drive-controls button { width: 72px; height: 72px; border-radius: 20px; }
+  .drive-controls [data-drive="forward"], .drive-controls [data-drive="reverse"] { grid-column: auto; }
+  .drive-world { inset: calc(116px + env(safe-area-inset-top)) 0 calc(178px + env(safe-area-inset-bottom)); }
+  .drive-menu { inset: calc(96px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); padding: 14px; gap: 18px; border-radius: 24px; }
+  .drive-menu h2 { font-size: 28px; }
+  .drive-road-cards { width: 100%; gap: 10px; }
+  .drive-road-card { width: auto; flex: 1; min-width: 72px; height: 150px; border-radius: 18px; }
+  .drive-road-card svg { height: 110px; }
+  .drive-road-card span { font-size: 22px; }
+  .drive-finish-art { width: 90px; height: 90px; }
+}
+@media(max-height:500px) {
+  #start { flex-direction: row; gap: 35px; }
+  .colors { max-width: 420px; }
+  #yard { padding-top: calc(4px + env(safe-area-inset-top)); padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .yard-top { min-height: 72px; display: flex; }
+  .yard-counts { margin-top: 0; }
+  .yard-layout { display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 14px; flex: 1; min-height: 0; padding-top: 4px; }
+  .yard-layout aside { overflow-y: auto; padding-bottom: 8px; }
+  .yard-layout aside > h2, .yard-adventure > h2 { display: none; }
+  #yardJobs { display: grid; gap: 8px; overflow: visible; }
+  .yard-adventure { justify-content: center; }
+  .yard-adventure .equipment-scene > svg { max-height: 70px; }
+  .yard-start { margin-top: 8px; }
+  .yard-nav { gap: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); }
+  body[data-screen="yard"] .bot, body[data-screen="mission"] .bot, body[data-screen="coop"] .bot { display: none; }
+  #jobScene > svg { height: 58px; }
+  .mission-equipment h2 { font-size: 14px; top: 7px; padding: 4px 8px; }
+  #mission .opts { width: calc(100% - 48px - env(safe-area-inset-left) - env(safe-area-inset-right)); grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; padding: 6px 0 calc(10px + env(safe-area-inset-bottom)); }
+  #mission .opts[data-count="3"] { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  #mission .opt, #mission .opts.grid .opt, #mission .opts.pods .opt, #mission .opts.blocks .opt { font-size: 32px; }
+  #mission .opts.blocks .opt { font-size: 44px; }
+  #mission .prompt.teach { font-size: 54px; margin-top: 4px; }
+  #mission .prompt.twin { font-size: 40px; margin-top: 4px; padding: 0 24px 4px; }
+  #mission .glitch { top: 96px; }
+  #farm { padding-top: calc(82px + env(safe-area-inset-top)); padding-bottom: calc(116px + env(safe-area-inset-bottom)); }
+  .bigcard { margin-top: 4px; font-size: 64px; padding: 8px 18px; }
+  .pstrip { display: flex; gap: 8px; }
+  .answer { padding: 0; font-size: 13px; }
+  .bar3 { width: 55px; }
+  .fuel { bottom: 80px; right: 26px; height: 100px; }
+  .ship { bottom: 190px; }
+  .equipment-reward svg { max-height: 90px; }
+  .drive-controls { right: calc(12px + env(safe-area-inset-right)); transform: none; }
+  .drive-world { inset: calc(88px + env(safe-area-inset-top)) calc(190px + env(safe-area-inset-right)) 0 env(safe-area-inset-left); }
+  .drive-top .drive-score { top: 80px; }
+  .drive-menu { flex-direction: row; }
+  .drive-road-card { height: 118px; }
+  .drive-road-card svg { height: 82px; }
+}
+/* Empty prompts reserve no space; short phones keep every answer reachable. */
+#mission .prompt:empty { display: none; }
+@media (max-height: 360px) {
+  #jobScene > svg { height: 20px; }
+  .mission-equipment h2 { font-size: 12px; top: 4px; padding: 3px 6px; }
+  #mission:has(.prompt.twin) .mission-equipment { display: none; }
+  #mission .prompt.twin { font-size: 24px; }
+}
+@media (max-width: 600px) and (min-height: 501px) and (max-height: 600px) {
+  .yard-layout { gap: 8px; }
+  .yard-start { margin-top: 8px; }
+}
+/* Short machine interludes, with no motion while a question is open. */
+.paused-job { color: #38544a; font-size: 12px; font-family: system-ui,sans-serif; white-space: nowrap; }
+.yard-job:has(.paused-job) { flex-wrap: wrap; }
+.machine-spark { position: absolute; left: 50%; top: 45%; pointer-events: none; font-style: normal; font-size: 30px; color: #f7b928; text-shadow: 0 2px #80521a; }
+#jobScene { position: relative; }
+#mission.action #opts, #mission.action #prompt, #mission.action #glitch { display: none; }
+#mission.action .mission-equipment { display: block; flex: 1; min-height: 0; width: 100%; }
+#mission.action #jobScene > svg { width: 100%; height: clamp(100px,30vh,280px); }
+#mission.action .mission-equipment h2 { display: none; }
+#jobAction { text-align: center; padding: 8px 16px calc(20px + env(safe-area-inset-bottom)); }
+#jobAction[hidden] { display: none; }
+#actionTitle { font-size: clamp(22px,5vw,32px); margin: 4px 0 12px; }
+#actionGo { width: 120px; height: 96px; min-height: 72px; border-radius: 24px; padding: 8px; }
+#actionGo svg { width: 100%; height: 100%; }
+.reader-open { display: inline-flex; font-size: 38px; margin-left: 16px; }
+.mini-reader { width: min(620px,calc(100vw - 24px)); padding: 16px; }
+.reader-scene svg { width: 100%; max-height: 170px; }
+.reader-text { font: 48px Andika,Verdana,sans-serif; margin: 8px 0; }
+.reader-count { font: 16px system-ui,sans-serif; margin: 4px; }
+.reader-controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.reader-controls .round { width: 72px; height: 72px; min-width: 72px; min-height: 72px; }
+@media(max-width: 360px) { .reader-controls { gap: 4px; }.mini-reader {padding:8px;} .reader-text {font-size:36px;} }
+@media(max-height: 500px) { #mission.action #jobScene > svg {height: 88px;} #jobAction {padding-bottom:calc(8px + env(safe-area-inset-bottom));} #actionTitle {margin:0 0 4px;font-size:22px;} #actionGo {height:72px;} .mini-reader h2 {font-size:20px;margin:0;} .reader-scene svg {max-height:60px;} .reader-text {font-size:32px;margin:0;} }
+#mission.action #jobScene { width: min(700px,94%); margin: 0 auto; border: 4px solid #287f96; border-radius: 28px; background: radial-gradient(ellipse at center,#fff4a8 0%,#b9ecf1 65%,#72c9dd 100%); overflow: hidden; box-shadow: 0 8px 0 #21566c; }
+#mission.action .equipment-scene svg { filter: saturate(1.25); }
+#mission.action #actionGo { background: #ffd957; border: 4px solid #925f16; box-shadow: 0 7px 0 #925f16; }
+#mission.action #actionGo:active { transform: translateY(4px); box-shadow: 0 3px 0 #925f16; }
+#actionGo:focus-visible, .reader-controls button:focus-visible { outline: 4px solid #2864d2; outline-offset: 4px; }

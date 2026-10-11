@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {createUsage,validUsage,emptyUsage,duration,TIME_KEY} from '../usage-time.js';
+const values=new Map();let fail=false;
+const storage={getItem:key=>values.get(key)||null,setItem:(key,value)=>{if(fail)throw Error('Storage unavailable');values.set(key,value)}};
+let time=+new Date('2026-10-10T12:00:00'),focused=true;
+const u=createUsage(storage,{now:()=>time,active:()=>focused,id:'one'});
+time+=10000;assert.equal(u.flush().totalMs,10000);assert.equal(u.flush().totalMs,10000,'flush never counts twice');
+u.activity('Reading job');time+=5000;u.flush();focused=false;u.pause();time+=120000;assert.equal(u.flush().totalMs,15000,'background excluded');
+focused=true;u.resume();time+=70000;assert.equal(u.flush().totalMs,75000,'idle stops after one minute');
+u.input();time+=10000;assert.equal(u.flush().totalMs,85000,'input restarts time');
+assert.equal(u.snapshot().sessions[0].activities.find(a=>a.label==='Reading job').ms,75000);
+fail=true;time+=5000;assert.equal(u.flush().totalMs,90000);assert.ok(u.failed);time+=5000;assert.equal(u.flush().totalMs,95000,'unsaved time retained in memory');fail=false;assert.equal(u.flush().totalMs,95000,'failed writes retry once');assert.equal(u.failed,false);
+u.stop();time+=5000;assert.equal(u.flush().totalMs,95000,'stopped tracker cannot overwrite restored data');
+const v=createUsage(storage,{now:()=>time,active:()=>true,id:'two'});time+=10000;assert.equal(v.flush().totalMs,105000,'next visit adds to lifetime total');assert.equal(v.snapshot().sessions.length,2);assert.ok(validUsage(v.snapshot()));
+values.clear();time=+new Date('2026-10-10T23:59:50');const midnight=createUsage(storage,{now:()=>time,active:()=>true,id:'midnight'});time+=20000;const split=midnight.flush();assert.equal(split.days['2026-10-10'],10000);assert.equal(split.days['2026-10-11'],10000);
+values.clear();time=+new Date('2026-10-10T12:00:00');let held=true;const driving=createUsage(storage,{now:()=>time,active:()=>true,engaged:()=>held,id:'driving'});time+=120000;assert.equal(driving.flush().totalMs,120000,'held driving controls remain active beyond idle timeout');held=false;time+=70000;assert.equal(driving.flush().totalMs,180000,'released controls become idle after one minute');
+const cryptoDescriptor=Object.getOwnPropertyDescriptor(globalThis,'crypto');try{Object.defineProperty(globalThis,'crypto',{configurable:true,value:{}});const local=createUsage(storage,{now:()=>time,active:()=>true});time+=1000;assert.ok(local.flush().sessions.at(-1).id.startsWith('visit-'),'LAN HTTP works without secure-context UUID support');}finally{if(cryptoDescriptor)Object.defineProperty(globalThis,'crypto',cryptoDescriptor);else delete globalThis.crypto;}
+assert.ok(validUsage(emptyUsage()));for(const invalid of [null,{}, {...emptyUsage(),totalMs:-1},{...emptyUsage(),sessions:[{id:'x',start:0,end:1e50,ms:1,activities:[]}]}])assert.ok(!validUsage(invalid));
+values.clear();for(let i=0;i<101;i++){const visit=createUsage(storage,{now:()=>time,active:()=>true,id:'history-'+i});time+=1000;visit.flush();}const retained=JSON.parse(values.get(TIME_KEY));assert.equal(retained.sessions.length,100);assert.equal(retained.totalMs,101000,'lifetime time survives trimming visit history');assert.equal(Object.values(retained.days).reduce((a,b)=>a+b,0),101000);
+assert.equal(duration(0),'0s');assert.equal(duration(90500),'1m 30s');assert.equal(duration(3660000),'1h 1m');
+console.log('Active time, idle/background pauses, session totals, storage retry and midnight split passed ✔');

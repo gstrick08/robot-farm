@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Robot Farm local browser checks</title><link rel="icon" href="../icon.png">
+<style>body{font:16px system-ui;margin:12px;background:#f5f6f0}button{padding:12px;margin:4px}iframe{width:1024px;height:768px;border:1px solid #888;display:block}pre{white-space:pre-wrap;max-width:1024px}</style>
+<p>Local development controls. Use on localhost only; the fixture replaces this browser profile's test progress.</p>
+<button id="fresh">Fresh local test</button><button id="baseline">Load played v1 fixture</button><button id="gate">Hold grown-up gear</button><button id="inspect">Read saved progress</button>
+<button id="small">1024 × 768</button><button id="wide">1180 × 820</button><button data-day="2026-10-09">Day 1</button><button data-day="2026-10-10">Day 2</button><button data-day="2026-10-11">Day 3</button><button id="sound">Sound on</button><button id="decode">Check AAC decoding</button><button id="offline">Install local offline cache</button><button id="driveCheck">Run tractor route checks</button><button id="driveHold">Hold forward for one second</button>
+<iframe id="game" src="about:blank"></iframe><pre id="result"></pre>
+<script>
+const frame=document.querySelector('iframe'),result=document.querySelector('#result');
+async function loadGame(fast,today='') {
+ let html=await(await fetch('../index.html',{cache:'no-store'})).text();
+ let driver=await(await fetch('../driving.js',{cache:'no-store'})).text();
+ driver=driver.replaceAll("from './", "from '"+new URL('../',location.href).href).replace('function paint() {', 'function paint() { window.routeProbe = {...state, target: ROADS[level][job.loaded ? "drop" : "pickup"]};');
+ const url=URL.createObjectURL(new Blob([driver],{type:'text/javascript'}));
+ html=html.replace("if ('serviceWorker' in navigator", "if (false && 'serviceWorker' in navigator").replace("'./driving.js'",JSON.stringify(url)).replace('<head>','<head><base href="'+new URL('../',location.href).href+'">').replace("const FAST = qs.has('fast');",'const FAST = '+fast+';');
+ if(today)html=html.replace('const qs = new URLSearchParams(location.search);', 'const qs = new URLSearchParams('+JSON.stringify('?today='+today)+');');
+ frame.srcdoc=html;
+ frame.addEventListener('load',()=>URL.revokeObjectURL(url),{once:true});
+}
+
+if(!/^(localhost|127\.|\[::1\])/.test(location.hostname)){document.body.textContent='These checks are available on localhost only.'}else{
+loadGame(true);
+document.querySelector('#fresh').onclick=()=>{if(!/^(localhost|127\.)/.test(location.hostname))return;localStorage.setItem('robotfarm.v1','null');loadGame(true);result.textContent='Fresh local test started.'};
+document.querySelector('#baseline').onclick=async()=>{if(!/^(localhost|127\.)/.test(location.hostname))return;const r=await fetch('fixtures/played-v1.json');localStorage.setItem('robotfarm.v1',await r.text());loadGame(true);result.textContent='Played v1 fixture loaded.'};
+document.querySelector('#gate').onclick=()=>{const gear=frame.contentDocument.querySelector('#gear');gear.dispatchEvent(new PointerEvent('pointerdown'));setTimeout(()=>gear.dispatchEvent(new PointerEvent('pointerup')),3500)};
+document.querySelector('#inspect').onclick=()=>{result.textContent=localStorage.getItem('robotfarm.v1')};
+document.querySelector('#wide').onclick=()=>{frame.style.width='1180px';frame.style.height='820px'};
+document.querySelector('#small').onclick=()=>{frame.style.width='1024px';frame.style.height='768px'};
+document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{loadGame(true,b.dataset.day)});
+document.querySelector('#sound').onclick=()=>{loadGame(false)};
+document.querySelector('#decode').onclick=async()=>{
+  const ac=new (window.AudioContext||window.webkitAudioContext)();await ac.resume();
+  const {SOUND_FILES}=await import('../sounds.js');
+  const decoded=await Promise.all(SOUND_FILES.map(async n=>{try{const r=await fetch('../audio/'+n+'.m4a');const b=await ac.decodeAudioData(await r.arrayBuffer());return n+': '+b.duration.toFixed(2)+' seconds'}catch{return n+': FAILED'}}));
+  result.textContent=decoded.join('\n');await ac.close();
+};
+document.querySelector('#offline').onclick=async()=>{
+  if(!/^(localhost|127\.)/.test(location.hostname))return;
+  try{await navigator.serviceWorker.register('../sw.js',{scope:'../'});await navigator.serviceWorker.ready;result.textContent='Offline cache installed. Open the game directly, stop this test server, then reload.'}catch(e){result.textContent='Offline check failed: '+e.message}
+};
+document.querySelector('#driveHold').onclick=()=>{
+ const b=frame.contentDocument.querySelector('[data-drive="forward"]');
+ b.dispatchEvent(new PointerEvent('pointerdown',{pointerId:41}));setTimeout(()=>b.dispatchEvent(new PointerEvent('pointerup',{pointerId:41})),1000);
+};
+document.querySelector('#driveCheck').onclick=async()=>{
+ const doc=frame.contentDocument,progress=localStorage.getItem('robotfarm.v1'),wait=ms=>new Promise(r=>setTimeout(r,ms));
+ const release=()=>doc.querySelectorAll('[data-drive]').forEach((b,i)=>b.dispatchEvent(new PointerEvent('pointerup',{pointerId:100+i})));
+ const hold=key=>{release();const b=doc.querySelector('[data-drive="'+key+'"]');const i=[...doc.querySelectorAll('[data-drive]')].indexOf(b);b.dispatchEvent(new PointerEvent('pointerdown',{pointerId:100+i}))};
+ try{
+  if(!doc.querySelector('#drive.on'))doc.querySelector('#driveBtn').click();
+  const results=[];
+  for(let road=0;road<3;road++){
+   doc.querySelector('.drive-roads').click();doc.querySelectorAll('.drive-road-card')[road].click();
+   const deadline=Date.now()+90000;
+   while(!doc.querySelector('.drive-finish-art')&&Date.now()<deadline){
+    const {x,y,angle,target:[tx,ty]}=frame.contentWindow.routeProbe;let error=Math.atan2(ty-y,tx-x)-angle;
+    error=Math.atan2(Math.sin(error),Math.cos(error));hold(Math.abs(error)<.12?'forward':error>0?'right':'left');await wait(100);
+    result.textContent='Testing road '+(road+1)+': '+doc.querySelector('.drive-score b').textContent;
+   }
+   release();if(!doc.querySelector('.drive-finish-art'))throw new Error('Road '+(road+1)+' did not finish');results.push(doc.querySelector('#drive').dataset.road+': 3 / 3');
+  }
+  result.textContent=results.join('\n')+'\nLearning save unchanged: '+(progress===localStorage.getItem('robotfarm.v1'));
+ }catch(e){result.textContent='Driving check failed: '+e.message}finally{release()}
+};
+}
+</script></html>

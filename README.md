@@ -1,13 +1,38 @@
 # Robot Farm
 
-A kindergarten reading game for iPad: Heart Words (sight words) and letter names, wrapped in a robot-on-a-blocky-farm game, with letter sounds and decoding coming next. It practices the DIBELS 8 / mCLASS skills and includes a daily 5-minute parent "Mission Control" read-aloud.
+A kindergarten reading game for iPhone and iPad: Heart Words (sight words) and letter names, wrapped in a robot-on-a-blocky-farm game, with letter sounds and decoding coming next. It practices the DIBELS 8 / mCLASS skills and includes a daily 5-minute parent "Mission Control" read-aloud.
 
 - **Play:** open the site in Safari → Share → Add to Home Screen.
 - **Grown-up area:** hold ⚙️ for 3 seconds, then answer the math question.
 - Progress stays on the device. Backup and restore are in the grown-up area.
 
 **Dev:** `python3 -m http.server`, then open `/?fast` (silent and quick). `?today=YYYY-MM-DD` fakes the date.
-**Rules check:** `node tools/check.mjs`
+**Checks:** `node tools/check.mjs`, `node tools/check-presentation.mjs`, `node tools/check-ui.mjs`, `node tools/check-driving.mjs`, `node tools/check-equipment.mjs`, `node tools/check-speech.mjs`, `node tools/check-job-progress.mjs`, `node tools/check-adventure.mjs`, `node tools/check-preferences.mjs`, `node tools/check-report.mjs`, `node tools/check-usage.mjs`, `node tools/check-narration.mjs`
 **Deploying:** bump `VERSION` in `sw.js` so installed copies update.
 
 Font: Andika by SIL International, under the SIL Open Font License (`fonts/OFL.txt`).
+
+
+Visual upgrade: original SVG art, stable farm tiles, short skippable celebrations, local AAC sound effects, and optional gentle farm music. Voice previews list only English voices the browser exposes. Learning progress still uses `robotfarm.v1` with `v: 1`; optional music preferences use a separate `robotfarm.audio.v1` key and are not included in progress backups.
+
+For manual local checks, open `/tools/browser-audit.html`. Its disposable fixture controls are enabled only on localhost. The offline control installs a worker only on the local test origin; use a separate port, open the game directly, stop that server and reload. The game also caches its production assets on localhost for offline testing.
+
+See [asset credits](CREDITS.md), [validation and device checklist](docs/validation.md), and [screenshots](docs/screenshots/). This branch needs real-iPhone/iPad acceptance before merging into the live site.
+
+Tractor trails: tap the tractor-and-trailer button on the farm, then pick the barn loop, orchard bends or river bridge. Hold an arrow to drive; left/right also move forward for one-finger steering. Arrow keys work on a keyboard. Cargo loads/unloads automatically at the marked stops; three deliveries finish a road. Every road is available immediately. Driving sessions are temporary and never alter learning progress, coins, seeds or daily mission limits.
+
+Equipment jobs are now the main hub. The four original scenes rotate across the existing daily mission slots: assemble a tractor, work a field, load and haul corn, and make popcorn. Correct answers advance the equipment; helped answers still earn silver, and only first-try gold fills the seed bag. The equipment pauses before the next question. Every job keeps the same 10-gold / 15-question limit, teaching prompts, shuffled choices, fonts and progress schema. There are no extra job rewards or required missions. Home visits the farm, the tractor opens the three driving roads, and the rocket opens the parent-gated Mission Control.
+
+For equipment integration checks, serve an isolated localhost port and open `/tools/equipment-audit.html`. It uses a generated iframe containing the current game source, with test hooks appended only to that disposable document. It never adds debug hooks to the production game.
+
+Phone/tablet follow-up: portrait and landscape layouts use large answer and driving controls, safe-area spacing and a panning farm that preserves tile sizes. The manifest allows either orientation. Automatic speech prefers local Premium/Enhanced English voices; unsaved speed changes apply to previews, and saved voice/speed preferences remain intact. Install an enhanced voice through Apple’s accessibility voice settings if the browser only exposes standard voices. Native Safari listening, touch performance, share sheets and Home Screen installation still need physical-device acceptance.
+
+The localhost equipment harness also includes a complete flow test and a phone/tablet layout matrix. It generates test hooks only in the disposable iframe; none ship in the main game.
+
+Saved-job follow-up: a job resumes its exact question, choice order, faded mistakes, hint, gold bag, equipment position and pending machine break after leaving or reloading on the same day. `robotfarm.v1` remains the original learning-save format. Checkpoints use `robotfarm.jobs.v1`; paired writes recover the matching learning save and checkpoint after an interrupted write. Partial seeds are paid once when leaving, with only the remainder awarded on completion. Backups optionally include `jobSessions`, restored separately from the v1 learning state. Daily jobs still rotate each day, banking any unpaid earned gold before clearing old checkpoints; changing the active list or daily slot count invalidates incompatible checkpoints.
+
+Every three correct/helped answers now opens a short, child-triggered machine action with a large button and capped star bursts. Actions give no extra currency, use no timers or penalties, and finish before the next spoken question. Reduced motion skips moving particles and machine motion. Completed jobs offer an optional original three-page mini reader drawn from familiar words; sound help reads a page only when tapped. Inspired by Hooked on Phonics' learn, practice, read and celebrate sequence, this adds reading practice, not a replacement phonics curriculum. No commercial book, character or curriculum text was copied. Helena AI narration is partially installed; see the voice-pack status below.
+
+Additional check: `node tools/check-job-progress.mjs`. `tools/equipment-audit.html` includes pause/resume/reload, pending machine actions, original-reader and reduced-motion checks; run it only on a separate localhost origin with disposable test data.
+
+Adventure design: the approved original farm island is now the equipment hub and the three tractor roads. Canvas rendering draws the trailer from its independent towing position and angle, and skips stationary frames. Scene resolution is capped at 2× device pixel density. Equipment gets shaded orange paint, teal machinery and reflective glass; reading choices keep their existing font rules. The approved ten praise lines are selected by context (word/letter, helped answer, familiar item, response time). This does not change scoring. Offline cache version `robotfarm-14` includes the new artwork and theme. Forty-nine Helena AI narration clips are installed; the full pack is pending credits. See `docs/voice-pack-proposal.md` for coverage, costs, fallback behavior and acceptance checks.
