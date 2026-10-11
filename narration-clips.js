@@ -158,5 +158,237 @@ export const NARRATION_CLIPS = [
     "source": "batch-4.wav",
     "start": 35.4,
     "end": 39.2315
+  },
+  {
+    "text": "What do you want to plant?",
+    "file": "audio/narration/helena-021.m4a",
+    "duration": 2.2,
+    "source": "batch-5.wav",
+    "start": 0,
+    "end": 2.2
+  },
+  {
+    "text": "Planted! Come back tomorrow to see it grow.",
+    "file": "audio/narration/helena-022.m4a",
+    "duration": 3.42,
+    "source": "batch-5.wav",
+    "start": 2.2,
+    "end": 5.62
+  },
+  {
+    "text": "Your farm is full!",
+    "file": "audio/narration/helena-023.m4a",
+    "duration": 1.5,
+    "source": "batch-5.wav",
+    "start": 5.62,
+    "end": 7.12
+  },
+  {
+    "text": "Looking good!",
+    "file": "audio/narration/helena-024.m4a",
+    "duration": 1.13,
+    "source": "batch-5.wav",
+    "start": 7.12,
+    "end": 8.25
+  },
+  {
+    "text": "Pick an empty grass spot!",
+    "file": "audio/narration/helena-025.m4a",
+    "duration": 1.89,
+    "source": "batch-5.wav",
+    "start": 8.25,
+    "end": 10.14
+  },
+  {
+    "text": "Great spot!",
+    "file": "audio/narration/helena-026.m4a",
+    "duration": 1.06,
+    "source": "batch-5.wav",
+    "start": 10.14,
+    "end": 11.2
+  },
+  {
+    "text": "Cluck cluck!",
+    "file": "audio/narration/helena-027.m4a",
+    "duration": 0.88,
+    "source": "batch-5.wav",
+    "start": 11.2,
+    "end": 12.08
+  },
+  {
+    "text": "Oink oink!",
+    "file": "audio/narration/helena-028.m4a",
+    "duration": 0.74,
+    "source": "batch-5.wav",
+    "start": 12.08,
+    "end": 12.82
+  },
+  {
+    "text": "Baa!",
+    "file": "audio/narration/helena-029.m4a",
+    "duration": 0.76,
+    "source": "batch-5.wav",
+    "start": 12.82,
+    "end": 13.58
+  },
+  {
+    "text": "Moo!",
+    "file": "audio/narration/helena-030.m4a",
+    "duration": 0.67,
+    "source": "batch-5.wav",
+    "start": 13.58,
+    "end": 14.25
+  },
+  {
+    "text": "Neigh!",
+    "file": "audio/narration/helena-031.m4a",
+    "duration": 0.83,
+    "source": "batch-5.wav",
+    "start": 14.25,
+    "end": 15.08
+  },
+  {
+    "text": "Find the word.",
+    "file": "audio/narration/helena-032.m4a",
+    "duration": 1.14,
+    "source": "batch-5.wav",
+    "start": 15.08,
+    "end": 16.22
+  },
+  {
+    "text": "Find.",
+    "file": "audio/narration/helena-033.m4a",
+    "duration": 0.92,
+    "source": "batch-5.wav",
+    "start": 16.22,
+    "end": 17.14
+  },
+  {
+    "text": "This word is.",
+    "file": "audio/narration/helena-034.m4a",
+    "duration": 1.19,
+    "source": "batch-5.wav",
+    "start": 17.14,
+    "end": 18.33
+  },
+  {
+    "text": "Say.",
+    "file": "audio/narration/helena-035.m4a",
+    "duration": 0.84,
+    "source": "batch-5.wav",
+    "start": 18.33,
+    "end": 19.17
+  },
+  {
+    "text": "This is big.",
+    "file": "audio/narration/helena-036.m4a",
+    "duration": 1.42,
+    "source": "batch-5.wav",
+    "start": 19.17,
+    "end": 20.59
+  },
+  {
+    "text": "This is little.",
+    "file": "audio/narration/helena-037.m4a",
+    "duration": 1.07,
+    "source": "batch-5.wav",
+    "start": 20.59,
+    "end": 21.66
+  },
+  {
+    "text": "This is.",
+    "file": "audio/narration/helena-038.m4a",
+    "duration": 1.04,
+    "source": "batch-5.wav",
+    "start": 21.66,
+    "end": 22.7
+  },
+  {
+    "text": "Find big.",
+    "file": "audio/narration/helena-039.m4a",
+    "duration": 1.17,
+    "source": "batch-5.wav",
+    "start": 22.7,
+    "end": 23.87
+  },
+  {
+    "text": "Find little.",
+    "file": "audio/narration/helena-040.m4a",
+    "duration": 1.08,
+    "source": "batch-5.wav",
+    "start": 23.87,
+    "end": 24.95
+  },
+  {
+    "text": "Yes! That’s.",
+    "file": "audio/narration/helena-041.m4a",
+    "duration": 1.45,
+    "source": "batch-5.wav",
+    "start": 24.95,
+    "end": 26.4
+  },
+  {
+    "text": "New record!",
+    "file": "audio/narration/helena-042.m4a",
+    "duration": 0.96,
+    "source": "batch-5.wav",
+    "start": 26.4,
+    "end": 27.36
+  },
+  {
+    "text": "in a row!",
+    "file": "audio/narration/helena-043.m4a",
+    "duration": 0.95,
+    "source": "batch-5.wav",
+    "start": 27.36,
+    "end": 28.31
+  },
+  {
+    "text": "Great reading!",
+    "file": "audio/narration/helena-044.m4a",
+    "duration": 1.09,
+    "source": "batch-5.wav",
+    "start": 28.31,
+    "end": 29.4
+  },
+  {
+    "text": "seeds.",
+    "file": "audio/narration/helena-045.m4a",
+    "duration": 1.12,
+    "source": "batch-5.wav",
+    "start": 29.4,
+    "end": 30.52
+  },
+  {
+    "text": "and a golden seed.",
+    "file": "audio/narration/helena-046.m4a",
+    "duration": 1.8,
+    "source": "batch-5.wav",
+    "start": 30.52,
+    "end": 32.32
+  },
+  {
+    "text": "You rescued a bot! It loves.",
+    "file": "audio/narration/helena-047.m4a",
+    "duration": 2.41,
+    "source": "batch-5.wav",
+    "start": 32.32,
+    "end": 34.73
+  },
+  {
+    "text": "You rescued.",
+    "file": "audio/narration/helena-048.m4a",
+    "duration": 1.0,
+    "source": "batch-5.wav",
+    "start": 34.73,
+    "end": 35.73
+  },
+  {
+    "text": "bots! They moved onto your farm!",
+    "file": "audio/narration/helena-049.m4a",
+    "duration": 2.971,
+    "source": "batch-5.wav",
+    "start": 35.73,
+    "end": 38.701125
   }
 ];

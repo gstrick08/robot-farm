@@ -14,7 +14,7 @@ const c=vm.createContext({narrationPlan,narrator:{stop(){},async play(part){clip
  setTimeout(fn){timers.set(++nextTimer,fn);return nextTimer;},clearTimeout(id){timers.delete(id);}
 });
 vm.runInContext(`let voice=null,talkId=0,currentSpeech=Promise.resolve(),finishSpeech,cancelDevice;${['pickVoice','stopSpeech','deviceSpeech','say'].map(extract).join('\n')}`,c);
-let p=c.say('Find the word. tractor.');assert.equal(spoken.voice.voiceURI,'sam');assert.equal(spoken.rate,.85);assert.equal(spoken.pitch,1);spoken.onend();await p;
+let p=c.say('Find the word. tractor.');await new Promise(setImmediate);assert.equal(clipsPlayed.at(-1).text,'Find the word.');assert.equal(spoken.text,'. tractor.');assert.equal(spoken.voice.voiceURI,'sam');assert.equal(spoken.rate,.85);assert.equal(spoken.pitch,1);spoken.onend();await p;
 p=c.say('Voice preview','sam',1.05);assert.equal(spoken.rate,1.05,'preview uses unsaved slider value');spoken.onend();await p;
 voices.push({name:'Ava',lang:'en-US',voiceURI:'ava-premium',localService:true});p=c.say('Hello');assert.equal(spoken.voice.voiceURI,'ava-premium','late-loaded premium voice is selected');spoken.onend();await p;
 c.S.settings.voice='sam';p=c.say('Hello');assert.equal(spoken.voice.voiceURI,'sam','parent selection persists');spoken.onend();await p;
